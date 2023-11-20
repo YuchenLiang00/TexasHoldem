@@ -7,6 +7,7 @@ import gc
 
 from src.hand import Deck, Hand
 from src.player import Player
+from src.evaluator import Evaluator
 
 
 class Dealer:
@@ -17,30 +18,40 @@ class Dealer:
     # 发牌函数
     def deal_cards(self, number) -> Hand:
         return Hand([self._deck.pop() for _ in range(number)])
-    
+
     def deal_preflop(self,):
-        self.comminity_cards = Hand()
+        self.community_cards = Hand()
         for player in self.player_list:
             player.set_hand(self.deal_cards(2))
         return
-    
+
+    def get_players_hands(self) -> list:
+        return [player.hand for player in self.player_list]
+
     def deal_flop(self):
-        self.comminity_cards += self.deal_cards(3)
+        self.community_cards += self.deal_cards(3)
 
     def deal_turn(self):
-        self.comminity_cards += self.deal_cards(1)
-    
+        self.community_cards += self.deal_cards(1)
+
     def deal_river(self):
-        self.comminity_cards += self.deal_cards(1)
-    
-    def show_comminity_cards(self):
+        self.community_cards += self.deal_cards(1)
+
+    def show_community_cards(self):
         # print(f"   FLOP   TURN  RIVER")
-        print("Comminity Cards: ",end="")
-        self.comminity_cards.show()
+        print("Community Cards: ", end="")
+        self.community_cards.show()
+
+    def eval_hands(self):
+        """ 计算全部玩家的手牌大小 """
+        evaluator = Evaluator(self.community_cards, self.get_players_hands())
+        player_combo = [evaluator.evaluate_hand(
+            player.hand) for player in self.player_list]
+        print(player_combo)
 
     def reset_deck(self):
         self._deck = Deck()
-        self.comminity_cards = []
+        self.community_cards = []
         gc.collect()
 
 

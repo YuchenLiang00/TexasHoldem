@@ -31,6 +31,10 @@ class Hand:
     def show(self):
         l = [s + r for s, r in self._cards]
         print(' '.join(l))
+        
+    @property
+    def cards(self):
+        return self._cards.copy()
 
 
 class Deck(Hand):

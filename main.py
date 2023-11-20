@@ -11,10 +11,15 @@ def main():
     dealer.deal_flop()
     dealer.deal_turn()
     dealer.deal_river()
-    dealer.show_comminity_cards()
-    # TODO evaluate hands
+    dealer.show_community_cards()
+
     player1.show_hands()
     player2.show_hands()
+
+    # TODO evaluate hands
+    dealer.eval_hands()
+
+    dealer.reset_deck()
 
 
 if __name__ == '__main__':
