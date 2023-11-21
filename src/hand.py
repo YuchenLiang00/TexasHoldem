@@ -9,7 +9,7 @@ Card = namedtuple('Card', ['suit', 'rank'])
 
 
 class Hand:
-    SUITS = ('H', 'D', 'C', 'S')
+    SUITS = ('♥', '♦', '♣', '♠')
     RANKS = ('2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A')
 
     def __init__(self, cards:list[Card]=None) -> None:
@@ -31,7 +31,7 @@ class Hand:
     def show(self):
         l = [s + r for s, r in self._cards]
         print(' '.join(l))
-        
+
     @property
     def cards(self):
         return self._cards.copy()

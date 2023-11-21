@@ -1,25 +1,31 @@
 from src.dealer import Dealer
 from src.player import Player
 
+STREETS = ('Pre-Flop', 'Flop', 'Turn', 'River',)
 
 def main():
     """ 接近完整流程 """
-    player1 = Player('Bob')
-    player2 = Player('Alice')
-    dealer = Dealer([player1, player2])
-    dealer.deal_preflop()
-    dealer.deal_flop()
-    dealer.deal_turn()
-    dealer.deal_river()
-    dealer.show_community_cards()
+    # 初始化
+    bob = Player('Bob')
+    alice = Player('Alice')
+    dealer = Dealer([bob, alice])
+    # 发牌1
+    try:
+        dealer.play()
 
-    player1.show_hands()
-    player2.show_hands()
+        # 展示公共牌
+        dealer.show_community_cards()
 
-    # TODO evaluate hands
-    dealer.eval_hands()
+        # 比大小
+        # TODO evaluate hands
 
-    dealer.reset_deck()
+        dealer.eval_hands()
+        input("Press Enter to continue...")
+        #再来一次
+        dealer.reset_deck()
+    except KeyboardInterrupt:
+        print("\n\nGame Over!\n")
+        return
 
 
 if __name__ == '__main__':

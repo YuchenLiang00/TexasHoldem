@@ -1,3 +1,4 @@
+from sympy import reduced
 from src.hand import Card, Hand
 import itertools
 
@@ -6,9 +7,11 @@ class Evaluator:
     RANKS = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
              '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
 
-    def __init__(self, community_cards: Hand, hand_list: list[Hand]):
-        self.community_cards = community_cards
-        self.hand_list = hand_list
+    def __init__(self, community_cards:dict):
+        self.community_cards = Hand()
+        for hand in community_cards.values():
+            self.community_cards += hand
+            
         self.RANKING_HANDLES = [
             (self.is_straight_flush, "Straight Flush"),
             (self.is_four_of_a_kind, "Four of a Kind"),
@@ -21,7 +24,7 @@ class Evaluator:
         ]
         return
 
-    def evaluate_hand(self, hand):
+    def evaluate_hand(self, hand: Hand) -> tuple[str, Hand]:
         # TODO 更精细的比较：两个同样等级的手牌的大小比较
         hand += self.community_cards  # 这里已经是新的对象了
         cards = self.sort_cards(hand.cards)  # 7张
@@ -29,11 +32,12 @@ class Evaluator:
         for hand_check, hand_name in self.RANKING_HANDLES:
             for combo in itertools.combinations(hand, 5):
                 # 应该是不会改变手牌的
+                # 精细化，不能简单地使用for循环，应该根据每种情况做不同的处理
                 if hand_check(combo):
-                    return hand_name  # , combo
+                    return hand_name, Hand(self.sort_cards(combo))
 
         # 如果没有找到以上牌型，则返回高牌
-        return "High Card", self.sort_cards(cards)[:5]
+        return "High Card", Hand(self.sort_cards(cards)[:5])
 
     @classmethod
     def parse_card(cls, card: Card) -> tuple:
@@ -41,9 +45,9 @@ class Evaluator:
         return card.suit, cls.RANKS[card.rank]
 
     @classmethod
-    def sort_cards(cls, cards):
+    def sort_cards(cls, cards) -> list[Card]:
         cards: list = cards
-        return Hand(sorted(cards, key=lambda card: cls.parse_card(card)[1], reverse=True))
+        return sorted(cards, key=lambda card: cls.parse_card(card)[1], reverse=True)
 
     # == 检测函数 ==
     @classmethod
@@ -72,20 +76,22 @@ class Evaluator:
     @classmethod
     def is_straight(cls, cards: list[Card]):
         # 先去重 这是一个由纯数字组成的set
+        # reverse=True 表示降序排列，大的在前
         ranks = sorted(set([rank for _, rank
-                                   in map(cls.parse_card, cards)]))
+                            in map(cls.parse_card, cards)]), reverse=True)
+
         if 14 in ranks:
-            # 考虑A作为最小值的情况
-            ranks.add(1)
+            # 考虑 A 作为最小值的情况
+            ranks.append(1)  # 在最尾端
         if len(ranks) < 5:
             # 没有5张不一样的牌
             return False
         # 检查连续的5张牌
         for i in range(len(ranks) - 4):
-            if ranks[i+4] - ranks[i] == 4:
+            if ranks[i] - ranks[i + 4] == 4:
                 # 非常经典的算法，从有顺序的列表中计算一段窗口长度为5的子窗口
                 # 如果子窗口对应的数字差为5，则一定是顺子
-                
+
                 return True
         return False
 
