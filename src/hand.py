@@ -13,9 +13,10 @@ Card = namedtuple('Card', ['suit', 'rank'])
 class Hand:
     """ 手牌 """
     SUITS = Literal['♥', '♦', '♣', '♠']  # type alias
-    RANKS = Literal['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
+    RANKS = Literal['2', '3', '4', '5', '6',
+                    '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
 
-    def __init__(self, cards:list[Card]=None) -> None:
+    def __init__(self, cards: list[Card] = None) -> None:
         self._cards = cards if cards else []
 
     def __len__(self,):
@@ -29,8 +30,19 @@ class Hand:
         return ' '.join(l)
 
     def __add__(self, other):
-        return Hand(self._cards + other._cards)
-    
+        if isinstance(other, Hand):
+            return Hand(self._cards + other._cards)
+        else:
+            raise NotImplementedError(
+                f"Can only add Hand class instance, {type(other)} found.")
+
+    def __radd__(self, other):
+        """ 为了使sum函数可以作用在hand实例组成的iterable上 """
+        if other == 0:
+            return self
+        else:
+            return self.__add__(other)
+
     def __bool__(self):
         return bool(self._cards)
 
@@ -45,6 +57,7 @@ class Hand:
 
 class Deck(Hand):
     """ 一副完整的牌 (特殊的手牌) """
+
     def __init__(self) -> None:
         self._cards = [Card(s, r) for s, r
                        in itertools.product(Hand.SUITS, Hand.RANKS)]
