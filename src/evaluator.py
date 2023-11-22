@@ -4,6 +4,7 @@ import itertools
 
 
 class Evaluator:
+    """ 牌力判断机 """
     RANKS = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
              '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
 
@@ -13,6 +14,7 @@ class Evaluator:
             self.community_cards += hand
             
         self.RANKING_HANDLES = [
+            (self.is_royal_flush), "Royal Flush"
             (self.is_straight_flush, "Straight Flush"),
             (self.is_four_of_a_kind, "Four of a Kind"),
             (self.is_full_house, "Full House"),
@@ -25,12 +27,12 @@ class Evaluator:
         return
 
     def evaluate_hand(self, hand: Hand) -> tuple[str, Hand]:
-        # TODO 更精细的比较：两个同样等级的手牌的大小比较
+        # TODO 更精细的比较：两个同样等级的手牌的大小比
         hand += self.community_cards  # 这里已经是新的对象了
         cards = self.sort_cards(hand.cards)  # 7张
 
         for hand_check, hand_name in self.RANKING_HANDLES:
-            for combo in itertools.combinations(hand, 5):
+            for combo in itertools.combinations(cards, 5):
                 # 应该是不会改变手牌的
                 # 精细化，不能简单地使用for循环，应该根据每种情况做不同的处理
                 if hand_check(combo):
@@ -50,6 +52,13 @@ class Evaluator:
         return sorted(cards, key=lambda card: cls.parse_card(card)[1], reverse=True)
 
     # == 检测函数 ==
+    @classmethod
+    def is_royal_flush(cls, cards: list[Card]):
+        if cls.is_straight_flush(cards) and cls.sort_cards(cards)[0] == 14:
+            
+            return True
+            
+
     @classmethod
     def is_straight_flush(cls, cards: list[Card]):
         if cls.is_flush(cards) and cls.is_straight(cards):

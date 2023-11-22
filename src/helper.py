@@ -2,6 +2,6 @@
 
 
 class Helper:
+    """ 手牌胜率计算器 """
     def __init__(self) -> None:
-        """ 手牌胜率计算器 """
         pass

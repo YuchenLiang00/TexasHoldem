@@ -1,4 +1,4 @@
-""" 存储手牌信息 """
+""" 定义纸牌Card、手牌Hand、一副牌Deck类 """
 
 import random
 import itertools
@@ -9,6 +9,7 @@ Card = namedtuple('Card', ['suit', 'rank'])
 
 
 class Hand:
+    """ 手牌 """
     SUITS = ('♥', '♦', '♣', '♠')
     RANKS = ('2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A')
 
@@ -38,6 +39,7 @@ class Hand:
 
 
 class Deck(Hand):
+    """ 一副完整的牌 (特殊的手牌) """
     def __init__(self) -> None:
         self._cards = [Card(s, r) for s, r
                        in itertools.product(Hand.SUITS, Hand.RANKS)]
@@ -45,13 +47,6 @@ class Deck(Hand):
 
     def pop(self,):
         return self._cards.pop()
-
-
-# 判断牌力大小的函数（需要进一步实现）
-def evaluate_hand(hand: Hand):
-    # 这里需要编写逻辑来判断手牌的强度
-    # 例如检查是否有同花顺、四条等
-    pass
 
 
 if __name__ == '__main__':

@@ -3,17 +3,16 @@
 import gc
 
 from src.hand import Deck, Hand
-from src.player import Player
+from src.player import Player, Move
 from src.evaluator import Evaluator
 
 
-STREETS = ('Pre-Flop', 'Flop', 'Turn', 'River',)
-
-
 class Dealer:
-    def __init__(self, players: list[Player], big_blind:int=20) -> None:
+    """ 荷官 """
+    STREETS: tuple = ('Pre-Flop', 'Flop', 'Turn', 'River')
+
+    def __init__(self, players: list[Player], big_blind: int = 20) -> None:
         self.player_list = players
-        self._deck = Deck()
         self.big_blind = big_blind
 
     # 发牌函数
@@ -21,51 +20,96 @@ class Dealer:
         return Hand([self._deck.pop() for _ in range(number)])
 
     def deal_preflop(self,):
-        self.community_cards = {'Flop': Hand(['??'] * 3),
-                                'Turn': Hand(['??']), 
-                                'River': Hand(['??'])}
+        """ 给玩家发牌 """
         for player in self.player_list:
             player.set_hand(self.deal_cards(2))
         return
 
-    def get_players_hands(self) -> list:
-        return [player.hand for player in self.player_list]
+    def get_players_hands(self) -> list[Hand]:
+        """ 获取所有玩家的手牌 返回是一个包含着hand的list，每个hand是一个玩家的手牌"""
+        return [player._hand for player in self.player_list]
+
+    def betting_round(self, street, starting_bet: int = 0):
+        """ 这是在一条街内的玩家行动 """
+        # TODO
+        current_bet = starting_bet
+        min_raise = starting_bet
+
+        while True:
+            for player in self.player_list:
+                if player.action == 'Fold':
+                    continue
+
+                # 获取玩家的行动，例如使用 input() 函数或GUI组件
+                player.show_hands()
+                print(f"Player {player._name} Bet:")
+                typein = input()
+                # TODO Sanity check
+                amount = int(typein)
+                # 我们在Player类内完成amount的分类和检查
+                move: Move = player.bet(amount=amount, street=street,
+                                        current_bet=current_bet, min_raise=min_raise)
+
+                # 根据行动更新 current_bet, min_raise 等
+                if move.action == 'Raise':
+                    # 加注的话
+                    pass
+                elif move.action == 'ALL-IN':
+                    pass
+                elif move.action == 'Fold':
+                    # TODO Fold 应该有短路机制，把后面的街都标记成Fold
+                    pass
+
+                self.refresh_screen()
+            # 第一轮所有玩家行动结束
+            # 判断是不是只有一个人在场上
+            if len([p for p in self.player_list
+                    if p.action != 'Fold']) < 2:
+                # 游戏结束
+                return
+            # 不止一个人在场上
+            # 判断是不是所有在场玩家都下注整齐
+            if all(p.current_bet == current_bet
+                   for p in self.player_list
+                   if p.action != 'Fold'):
+                # 本圈结束
+                break
+
+        # 重置玩家的当前下注额
+        for player in self.player_list:
+            player.clear_current_bet()
 
     def play(self):
         # TODO 完善play 的功能
-        # TODO 河牌圈还要再下注一次，下注完之后还要打印信息
-        self.deal_preflop()
-        fold_players:list[Player] = []
-        for street in STREETS[1:]:
-            self.refresh_screen()
+        fold_players: list[Player] = []
+        self.reset_deck()
+        for street in self.STREETS:
+            # 确定本轮要发的公共牌张数
             card_num = 3 if street == 'Flop' else 1
-            while True:
-                # 所有玩家行动结束退出循环
-                for player in self.player_list:
-                    amount = int(input(f"Player {player.name} Bet:"))
-                    # TODO Sanity check
-                    status = player.bet(amount=amount, street=street)
-                    if status == 'Fold':
-                        fold_players.append(player)
-                break
-            self.community_cards[street] = self.deal_cards(card_num)
+            # 如果是翻前，则给每个人发手牌
+            if street == 'Pre-Flop':
+                self.deal_preflop()
+            self.refresh_screen()
+            self.betting_round(street)
+
+            if street != 'Pre-Flop':
+                self.community_cards[street] = self.deal_cards(card_num)
 
     def show_community_cards(self):
         # TODO 完善发牌时展示公共牌的流程
-        # print(f"   FLOP   TURN  RIVER")
         print("Community Cards: ", end=" ")
         for k, v in self.community_cards.items():
-            print(k, v, sep=' ',end='\t')
-
+            print(k, v, sep=' ', end='\t')
         print()
-            
+
     def refresh_screen(self):
         # 清除屏幕（终端命令）
         print("\033[H\033[J", end="")  # 这是清屏的ANSI转义码
         self.show_community_cards()
-        print("Player\t Money\t" + "\t".join(STREETS))
+        print("Player\t Money\t" + "\t".join(self.STREETS))
         for player in self.player_list:
-            print(player.name+'\t',player.money, player.show_move(), sep=' ')
+            print(player._name+'\t', player._money,
+                  player.show_move(), sep=' ')
 
     def eval_hands(self):
         """ 计算全部玩家的手牌大小 """
@@ -73,13 +117,17 @@ class Dealer:
         # 逐个地将玩家的手牌传入evaluator.evaluate_hand()当中
         print("  ------==  Show Hands!  ==------  ")
         for player in self.player_list:
-            hand_name, combo = evaluator.evaluate_hand(player.hand)
+            hand_name, combo = evaluator.evaluate_hand(player._hand)
             player.show_hands()
             print(combo, hand_name, sep='\t')
 
     def reset_deck(self):
+        """ 重置牌桌 """
         self._deck = Deck()
-        self.community_cards = []
+        self.community_cards = {'Flop': Hand(['??'] * 3),
+                                'Turn': Hand(['??']),
+                                'River': Hand(['??'])}
+
         gc.collect()
 
 
