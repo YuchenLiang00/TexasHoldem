@@ -1,11 +1,9 @@
 """ 定义玩家的信息和行为 """
 
 
-from asyncio import protocols
 import gc
-from telnetlib import STATUS
+from copy import deepcopy
 from typing import Literal
-# from src.hand import Hand
 
 
 class Move:
@@ -33,10 +31,11 @@ class Player:
         self._bet_history = {'Pre-Flop': [],
                              'Flop': [], 'Turn': [], 'River': []}
         self._action: Move.ACTION = None
+        self._current_bet: int = 0
 
     def bet(self,
             street: str,
-            amount: int,
+            amount: str,
             current_bet: int,
             min_raise: int) -> Move:
         """ 
@@ -56,38 +55,78 @@ class Player:
         if amount <= 0, 视为fold
         if current_bet = 0 且 amount = 0, 视为check
         else 视为跟注。逻辑上来说，乱输入也算跟注
+
+        我们发现 all-in是call、raise的一个子项。
+        如果check或者fold的话是不会触发all-in的
+        因此 我们可以不把all-in放在和call、rasie平级的判断中
+        而是先判断是否call、raise 再检查是否触发all-in
+
+        例子：
+            A bet 100, B raise to 500, C all in 600, 
+            则D的最小加注额（跟注额）是多少？
+        对于加注raise有两种常见规则：
+            - 全额下注规则：如果适用这一规则，C的全押600不构成一个完整的加注，因此不会重新开放下注。在这种情况下，D的最小加注额应该是B的加注额500加上之前的加注增量400（即总额900）​​。
+            - 半额下注规则：如果适用这一规则，并且全押额超过了最低下注的一半，那么它就被视为加注并重新开放下注。但具体是否适用这一规则取决于游戏的具体规则设定。
+        对于跟注call，玩家D：
+            - 他需要匹配当前轮次的最大下注金额，即C的全押金额600。
+            - 尽管C的全押没有构成一个有效的加注（因为它没有比前一个玩家的加注额多出最小加注量），但它仍然是当前轮次的最大下注金额。
+            - 因此，D需要下注600才能跟注。这是因为在无限注德州扑克中，跟注意味着匹配当前底池中的最大下注额，而不管这个下注额是通过正常加注还是全押形成的。
         """
+
+        try:  # Sanity check
+            amount = int(amount)
+        except ValueError:
+            amount = None  # 用户乱输入
+
         if amount == 0 and current_bet == 0:
             # check
-            self._action = 'Check'
+            self._action: Move.ACTION = Move.ACTION('Check')
+            self._current_bet = 0
 
         elif amount <= 0:
             # fold
             # 标记玩家弃牌
-            amount = None
+            self._current_bet = None
             self._action = 'Fold'
+            # TODO 直接把玩家的接下来几条街的行动全都标记为Fold，或者在dealer中直接跳过
 
-        # 以下amount>0
+        # 以下amount > 0 或为None
         elif amount >= current_bet + min_raise:
             # TODO raise
-            # 加注, 要判断是否符合加注规则
-            current_bet = amount
-            min_raise = amount - current_bet
-            self._action = 'Raise'
-
-        elif amount >= self._money or (current_bet > self._money and amount > 0):
-            # all in
-            amount = self._money
-            self._action = 'ALL-IN'
-
+            # 加注, 要判断是否符合加注规则, 要查相关资料确定加注规则
+            # 由于加注时，之前可能已经下注，所以要调整本轮下注金额
+            # 本轮需要额外下的注
+            additional_bet = amount - self._current_bet
+            if additional_bet >= self._money:
+                # all-in to raise
+                self._action = 'ALL-IN'
+                self._current_bet += self._money
+                self._money = 0
+            else:
+                self._current_bet = amount
+                self._money -= additional_bet  # 加注成立的话，当然满足
+                self._action = 'Raise'
         else:
+            # amount < current_bet + min_raise or amount is None
             # call
-            amount = current_bet
-            self._action = 'Call'
+            amount = current_bet  # 先纠正乱输入的部份
+            # 本轮需要额外下的注
+            additional_bet = amount - self._current_bet
+
+            if additional_bet >= self._money:
+                #  需要再下注的部份超过所剩金额，并且也要call的话
+                #  视为 all-in to call
+                self._action = 'ALL-IN'
+                self._current_bet += self._money  # 之前可能已经下过注
+                self._money = 0
+            else:
+                # 不超过所剩金额
+                self._action = 'Call'
+                self._money -= additional_bet
+                self._current_bet = amount
+                # self._current_bet永远是这一个street的下注总量（total)
 
         # 更新玩家状态
-        self._money -= amount
-        self._current_bet = amount
         move = Move(self._action, self._current_bet)
         self._bet_history[street].append(move)
         return move
@@ -98,22 +137,25 @@ class Player:
 
     @property
     def bet_history(self):
-        return self._bet_history.copy()
-    
+        return deepcopy(self._bet_history)  # 深拷贝
+
     @property
     def current_bet(self):
         return self._current_bet
-    
-    def clear_current_bet(self):
+
+    def reset_current_bet(self):
         self._current_bet = 0
 
+    def reset_action(self):
+        self._aciton = None
+
     def set_hand(self, hand):
-        """ 接受荷官的发牌 """
-        # dealer发牌的功能
+        """ 接受荷官的发牌 重置一些参数"""
         self._hand = hand
         self._bet_history = {'Pre-Flop': [],
                              'Flop': [], 'Turn': [], 'River': []}
-        self.is_folded = False
+        self._aciton = None
+        self._current_bet = 0
         gc.collect()
 
     def show_hands(self):
