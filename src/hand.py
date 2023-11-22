@@ -4,6 +4,7 @@ import random
 import itertools
 from collections import namedtuple
 from copy import deepcopy
+from typing import Literal
 
 
 Card = namedtuple('Card', ['suit', 'rank'])
@@ -11,8 +12,8 @@ Card = namedtuple('Card', ['suit', 'rank'])
 
 class Hand:
     """ 手牌 """
-    SUITS = ('♥', '♦', '♣', '♠')
-    RANKS = ('2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A')
+    SUITS = Literal['♥', '♦', '♣', '♠']  # type alias
+    RANKS = Literal['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
 
     def __init__(self, cards:list[Card]=None) -> None:
         self._cards = cards if cards else []
@@ -29,6 +30,9 @@ class Hand:
 
     def __add__(self, other):
         return Hand(self._cards + other._cards)
+    
+    def __bool__(self):
+        return bool(self._cards)
 
     def show(self):
         l = [s + r for s, r in self._cards]

@@ -1,7 +1,6 @@
 from src.dealer import Dealer
 from src.player import Player
 
-STREETS = ('Pre-Flop', 'Flop', 'Turn', 'River',)
 
 def main():
     """ 接近完整流程 """
