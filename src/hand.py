@@ -3,6 +3,7 @@
 import random
 import itertools
 from collections import namedtuple
+from copy import deepcopy
 
 
 Card = namedtuple('Card', ['suit', 'rank'])
@@ -35,7 +36,7 @@ class Hand:
 
     @property
     def cards(self):
-        return self._cards.copy()
+        return deepcopy(self._cards)
 
 
 class Deck(Hand):
