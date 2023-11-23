@@ -12,9 +12,7 @@ class Evaluator:
                         "Flush", "Straight", "Three of a Kind", "Two Pairs", "One Pair", "High Card"]
 
     def __init__(self, community_cards: dict):
-        self.community_cards = Hand()
-        for hand in community_cards.values():
-            self.community_cards += hand
+        self.community_cards = sum(community_cards.values())
 
         self.ranking_handles = {
             "Royal Flush": self.is_royal_flush,
@@ -30,7 +28,7 @@ class Evaluator:
 
         return
 
-    def parse_card(self, card: Card) -> tuple[Hand.SUITS, int]:
+    def parse_card(self, card: Card) -> tuple[Hand.SUIT, int]:
         """ Parse suit and rank, return: suit, rank """
         return card.suit, self.RANKS[card.rank]
 
@@ -39,7 +37,7 @@ class Evaluator:
         return sorted(cards, key=lambda card: self.parse_card(card)[1], reverse=True)
 
     def evaluate_hand(self, hand: Hand) -> tuple[str, Hand]:
-        # TODO 更精细的比较：两个同样等级的手牌的大小比
+        # 更精细的比较：两个同样等级的手牌的大小比
         hand += self.community_cards  # 这里已经是新的对象了
         cards = self.sort_cards(hand.cards)  # 7张
 
@@ -47,7 +45,7 @@ class Evaluator:
             max_hand: Optional[list[Card]] = None
             # combo - combination
             for combo in itertools.combinations(cards, 5):
-                # TODO 同一副手牌可能既是两对又是葫芦，如果找到先找到两对就返回，则会判断失误
+                # 同一副手牌可能既是两对又是葫芦，如果找到先找到两对就返回，则会判断失误
                 # 同样的，如果出现三对牌，则要找到最大的两对，
                 # 出现可能出现两个葫芦、多个顺子的情形，则需要找出最大的作为手牌返回
                 # 精细化，不能简单地使用for循环，应该根据每种情况做不同的处理
@@ -76,18 +74,19 @@ class Evaluator:
         elif hand_type == "One Pair":
             return self._compare_one_pair(cards1, cards2)
         else:
-            raise ValueError("Wrong input hand_type")
+            raise ValueError(f"Wrong input hand_type, {hand_type} found")
 
     def find_winner(self):
         # TODO 找出胜者
         pass
 
-    # == 检测函数 == 
-    # 以下函数的返回值类型均为bool
+    # == 检测函数 ==
+    # 以下函数的返回值类型均为bool，输入均为5张牌
     def is_royal_flush(self, cards: list[Card]):
         if self.is_straight_flush(cards):
             if self.parse_card(self.sort_cards(cards)[0])[1] == 14:
                 return True
+        return False
 
     def is_straight_flush(self, cards: list[Card]):
         if self.is_flush(cards) and self.is_straight(cards):
@@ -100,6 +99,7 @@ class Evaluator:
     def is_full_house(self, cards: list[Card]):
         count = {}
         for _, rank in map(self.parse_card, cards):
+            # 统计5张牌中各个数字出现的频率
             count[rank] = count.get(rank, 0) + 1
         values = list(count.values())
         return 3 in values and 2 in values
@@ -153,6 +153,7 @@ class Evaluator:
         return any(v >= n for v in count.values())
 
     # == 更细致的检测函数 ==
+    # 两手同样等级的牌的比较，都是5张牌
     def _compare_high_cards(self, cards1: list[Card], cards2: list[Card]) -> int:
         """ 高牌的比较，适用于同花顺、四条、同花、顺子、高牌 """
         cards1 = self.sort_cards(cards1)  # 直接把一个列表给传进来了，修改了原列表

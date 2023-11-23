@@ -1,19 +1,30 @@
 """ 存储发牌等相关信息 """
 
 import gc
+from enum import Enum
 
 from src.hand import Deck, Hand
-from src.player import Player, Move
+from src.player import Player, Move, Action
+from src.pot import Pot
 from src.evaluator import Evaluator
+
+
+class Street(Enum):
+    """ 四条街 本身就是可迭代的 """
+
+    PRE_FLOP = "Pre-Flop"
+    FLOP = "Flop"
+    TURN = "Turn"
+    RIVER = "River"
 
 
 class Dealer:
     """ 荷官 """
-    STREETS: tuple = ('Pre-Flop', 'Flop', 'Turn', 'River')
 
     def __init__(self, players: list[Player], big_blind: int = 20) -> None:
         self.player_list = players
         self.big_blind = big_blind
+        self.pot = Pot()
 
     # 发牌函数
     def deal_cards(self, number) -> Hand:
@@ -31,82 +42,111 @@ class Dealer:
         返回是一个包含着hand的list 每个hand是一个玩家的手牌
         目的是传入evaluator参与计算
         """
-        return [player._hand for player in self.player_list]
-    
+        return [player.hand for player in self.player_list]
+
     def play(self):
         """ 完整的一局游戏 """
         # TODO 完善play 的功能
         self.reset_deck()
-        for street in self.STREETS:
+        for street in Street:
             # 如果是翻前，则给每个人发手牌
-            if street == 'Pre-Flop':
+            if street == Street.PRE_FLOP:
                 self.deal_preflop()
             self.refresh_screen()
             self.betting_round(street)  # 可能中途结束
 
-            if street != 'Pre-Flop':
+            if street != Street.PRE_FLOP:
                 # 确定本轮要发的公共牌张数
-                card_num = 3 if street == 'Flop' else 1
+                card_num = 3 if street == Street.FLOP else 1
                 self.community_cards[street] = self.deal_cards(card_num)
-        
+
         # 河牌圈结束 或中途结束
         # TODO 找出胜者，分钱，踢出破产的玩家
 
     def betting_round(self, street, starting_bet: int = 0) -> bool:
         """ 一局中的一圈游戏 返回True则没有中途结束 返回False则中途结束游戏"""
-        # 
-        # TODO
-        current_bet = starting_bet
-        min_raise = starting_bet
-
+        # TODO betting_round 逻辑完善
+        current_bet = starting_bet  # 每一圈之后重置
+        min_raise = starting_bet  # 如果有盲注，则starting_bet不为0
+        # TODO 彩池金额维护，升盲等
         while True:
             for player in self.player_list:
-                if player.action == 'Fold':
-                    continue
+                if player.action != Action.FOLD:
+                    # 获取玩家的行动，例如使用 input() 函数或GUI组件
+                    player.show_hands()
+                    amount = input(f"Player {player._name} Bet:")
+                    try:  # Sanity check
+                        amount = int(amount)
+                    except ValueError:
+                        amount = None  # 用户乱输入
+                else:
+                    # Fold 短路机制，把后面的street都标记成Fold
+                    amount = -1
 
-                # 获取玩家的行动，例如使用 input() 函数或GUI组件
-                player.show_hands()
-                print(f"Player {player._name} Bet:")
-                amount = input()
-                # 我们在Player类内完成amount的分类和检查
                 move: Move = player.bet(amount=amount, street=street,
                                         current_bet=current_bet, min_raise=min_raise)
 
                 # 根据行动更新 current_bet, min_raise 等
-                self.examine_player_move(move)
+                current_bet, min_raise = \
+                    self.examine_player_move(move, current_bet, min_raise)
 
                 self.refresh_screen()  # 刷新屏幕，并且也要覆盖掉之前人的手牌和输入的内容
             # 第一轮所有玩家行动结束
             # 判断是不是只有一个人在场上
             if len([p for p in self.player_list
-                    if p.action != 'Fold']) < 2:
+                    if p.action != Action.FOLD]) < 2:
                 # 游戏结束
                 return False
             # 不止一个人在场上
             # 判断是不是所有在场玩家都下注整齐
             if all(p.current_bet == current_bet
                    for p in self.player_list
-                   if p.action != 'Fold'):
+                   if p.action != Action.FOLD):
                 # 本圈结束
                 break
 
         # 重置玩家的当前下注额
         for player in self.player_list:
-            player.reset_current_bet()
+            if player.action != Action.FOLD:
+                player.reset_current_bet()
+                player.reset_action()
+
         return True
 
-    def examine_player_move(self, move: Move):
-        """ 检查玩家的下注操作 适时修改current_bet, min_raise等属性 """
-        if move.action == 'Raise':
-            # 加注的话
+    def examine_player_move(self,
+                            move: Move,
+                            current_bet: int,
+                            min_raise: int) -> tuple[int, int]:
+        """ 检查玩家的下注操作 维护并返回current_bet, min_raise """
+        # TODO
+        if move.action in (Action.FOLD, Action.CHECK, Action.CALL):
+            # 玩家call，check，fold无需修改current_bet 和min_raise
             pass
-        elif move.action == 'ALL-IN':
+        elif move.action == Action.RAISE:
+            # 玩家加注
+            min_raise = move.amount - current_bet  # 首先修改加注增量
+            current_bet = move.amount
+        elif move.action == Action.ALL_IN:
+            # 判断是否构成call、raise
+            if move.amount <= current_bet:
+                # all-in，但不足跟注
+                pass
+            elif current_bet < move.amount < current_bet + min_raise:
+                # all-in，超过call但不足加注
+                # 同时修改加注增量和current_bet，使得加注总量不变
+                min_raise = current_bet + min_raise - move.amount
+                current_bet = move.amount  # 跟注要跟大的，但是加注总量不变
+            elif move.amount >= current_bet + min_raise:
+                # all-in to raise,视为raise
+                min_raise = move.amount - current_bet
+                current_bet = move.amount
+            else:
+                raise ValueError(f"Invalid move amount: {move.amount}")
+        else:
+            raise NotImplementedError(
+                f"Unable to examine move action: {move.action}")
 
-            pass
-        elif move.action == 'Fold':
-            # TODO Fold 应该有短路机制，把后面的street都标记成Fold
-            pass
-        return
+        return current_bet, min_raise
 
     def show_community_cards(self):
         # TODO 完善发牌时展示公共牌的流程
@@ -133,8 +173,8 @@ class Dealer:
             hand_name, combo = evaluator.evaluate_hand(player._hand)
             player.show_hands()
             print(combo, hand_name, sep='\t')
-            
-        winner = evaluator.find_winner() # TODO
+
+        winner = evaluator.find_winner()  # TODO 找出胜者
 
     def reset_deck(self):
         """ 重置牌桌 """
@@ -143,6 +183,10 @@ class Dealer:
         self.community_cards = {'Flop': Hand(['??'] * 3),
                                 'Turn': Hand(['??']),
                                 'River': Hand(['??'])}
+        self.pot.reset_pot()
+        for player in self.player_list:
+            player.reset_action()
+            player.reset_current_bet()
 
         gc.collect()
 

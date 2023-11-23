@@ -12,9 +12,12 @@ Card = namedtuple('Card', ['suit', 'rank'])
 
 class Hand:
     """ 手牌 """
-    SUITS = Literal['♥', '♦', '♣', '♠']  # type alias
-    RANKS = Literal['2', '3', '4', '5', '6',
-                    '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
+    SUITS: tuple = ('♥', '♦', '♣', '♠')
+    RANKS: tuple = ('2', '3', '4', '5', '6','7', 
+                    '8', '9', 'T', 'J', 'Q', 'K', 'A')
+    SUIT: type = Literal['♥', '♦', '♣', '♠']  # type alias
+    RANK: type = Literal['2', '3', '4', '5', '6', '7',
+                         '8', '9', 'T', 'J', 'Q', 'K', 'A']
 
     def __init__(self, cards: list[Card] = None) -> None:
         self._cards = cards if cards else []

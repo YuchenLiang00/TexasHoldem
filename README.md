@@ -14,3 +14,4 @@ Final Project of Programming Design
 7. 同一牌力等级的细分比较
 8. 胜率计算器的构造
 9. 输光了的玩家需要从玩家名单中踢出
+10. 盲注的维护
