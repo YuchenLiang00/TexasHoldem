@@ -1,5 +1,5 @@
-from src.dealer import Dealer
-from src.player import Player
+from src import Dealer
+from src import Player
 
 
 def main():
@@ -11,9 +11,6 @@ def main():
     # 发牌1
     try:
         dealer.play()
-
-        # 展示公共牌
-        dealer.show_community_cards()
 
         # 比大小
         # TODO evaluate hands

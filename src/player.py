@@ -4,46 +4,8 @@
 import gc
 from copy import deepcopy
 from typing import Optional
-from enum import Enum
 
-
-class Action(Enum):
-    """ 玩家动作类型 """
-
-    FOLD = 'Fold'
-    CALL = 'Call'
-    RAISE = 'Raise'
-    CHECK = 'Check'
-    ALL_IN = 'ALL-IN'
-
-    def to_string(self):
-        return self.value
-
-    @staticmethod
-    def from_string(action_str):
-        return Action[action_str.upper().replace("-", "_")]
-
-
-class Move:
-    """ 玩家的行动 """
-
-    def __init__(self, action=None, amount: int = 0) -> None:
-        self._action: Action = action
-        self._amount: int = amount
-
-    def __str__(self):
-        if self._amount is not None:
-            return self._action.to_string() + ' ' + str(self._amount)
-        else:
-            return self._action.to_string()
-
-    @property
-    def action(self):
-        return self._action
-
-    @property
-    def amount(self):
-        return self._amount
+from src.components import Hand, Street, Action, Move
 
 
 class Player:
@@ -53,10 +15,11 @@ class Player:
     def __init__(self, name: str) -> None:
         self._name = name
         self._money = Player.INIT_MONEY
-        self._bet_history = {'Pre-Flop': [],
-                             'Flop': [], 'Turn': [], 'River': []}
+        self._bet_history = {Street.PRE_FLOP: [], Street.FLOP: [],
+                             Street.TURN: [], Street.RIVER: []}
         self._action: Action = None
         self._current_bet: int = 0
+        self._hand: Hand = None
 
     def bet(self,
             street: str,
@@ -167,7 +130,7 @@ class Player:
 
     @property
     def hand(self):
-        return deepcopy(self.hand)
+        return deepcopy(self._hand)
 
     def reset_current_bet(self):
         self._current_bet = 0
@@ -178,8 +141,8 @@ class Player:
     def set_hand(self, hand):
         """ 接受荷官的发牌 重置一些参数"""
         self._hand = hand
-        self._bet_history = {'Pre-Flop': [],
-                             'Flop': [], 'Turn': [], 'River': []}
+        self._bet_history = {Street.PRE_FLOP: [], Street.FLOP: [],
+                             Street.TURN: [], Street.RIVER: []}
         self._aciton = None
         self._current_bet = 0
         gc.collect()

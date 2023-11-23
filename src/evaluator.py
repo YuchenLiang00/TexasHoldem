@@ -1,29 +1,28 @@
 """ 牌力判断 """
-from typing import Literal, Optional
-from src.hand import Card, Hand
 import itertools
+from typing import Optional
+
+from src.components.hand import Card, Hand, HandType
 
 
 class Evaluator:
     """ 牌力判断机 """
     RANKS = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
              '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
-    HAND_TYPE = Literal["Royal Flush", "Straight Flush", "Four of a Kind", "Full House",
-                        "Flush", "Straight", "Three of a Kind", "Two Pairs", "One Pair", "High Card"]
 
     def __init__(self, community_cards: dict):
-        self.community_cards = sum(community_cards.values())
+        self.community_cards: Hand = sum(community_cards.values())
 
         self.ranking_handles = {
-            "Royal Flush": self.is_royal_flush,
-            "Straight Flush": self.is_straight_flush,
-            "Four of a Kind": self.is_four_of_a_kind,
-            "Full House": self.is_full_house,
-            "Flush": self.is_flush,
-            "Straight": self.is_straight,
-            "Three of a Kind": self.is_three_of_a_kind,
-            "Two Pairs": self.is_two_pairs,
-            "One Pair": self.is_one_pair,
+            HandType.ROYAL_FLUSH: self.is_royal_flush,
+            HandType.STRAIGHT_FLUSH: self.is_straight_flush,
+            HandType.FOUR_OF_A_KIND: self.is_four_of_a_kind,
+            HandType.FULL_HOUSE: self.is_full_house,
+            HandType.FLUSH: self.is_flush,
+            HandType.STRAIGHT: self.is_straight,
+            HandType.THREE_OF_A_KIND: self.is_three_of_a_kind,
+            HandType.TWO_PAIRS: self.is_two_pairs,
+            HandType.ONE_PAIR: self.is_one_pair,
         }
 
         return
@@ -36,45 +35,52 @@ class Evaluator:
         """ 不会修改原列表 """
         return sorted(cards, key=lambda card: self.parse_card(card)[1], reverse=True)
 
-    def evaluate_hand(self, hand: Hand) -> tuple[str, Hand]:
+    def evaluate_hand(self, hand: Hand) -> tuple[HandType, Hand]:
         # 更精细的比较：两个同样等级的手牌的大小比
         hand += self.community_cards  # 这里已经是新的对象了
         cards = self.sort_cards(hand.cards)  # 7张
 
-        for hand_check, hand_type in self.ranking_handles.items():
+        for hand_type, hand_check in self.ranking_handles.items():
             max_hand: Optional[list[Card]] = None
             # combo - combination
-            for combo in itertools.combinations(cards, 5):
+            for combo in itertools.combinations(cards, 5):  # cards 有7张, combo是5张
                 # 同一副手牌可能既是两对又是葫芦，如果找到先找到两对就返回，则会判断失误
                 # 同样的，如果出现三对牌，则要找到最大的两对，
                 # 出现可能出现两个葫芦、多个顺子的情形，则需要找出最大的作为手牌返回
                 # 精细化，不能简单地使用for循环，应该根据每种情况做不同的处理
-                result: tuple[bool, list[Card]] = hand_check(combo)
-                if result[0]:
+                if hand_check(combo):
                     # 存在该牌型
-                    if not max_hand or self.compare_hands(result[1], max_hand, hand_type) == 1:
+                    if not max_hand or self.compare_hands(combo, max_hand, hand_type) == 1:
                         # 选择最大的牌型组合 更新max_hand
-                        max_hand = result[1]
+                        max_hand = combo
             if max_hand:
                 return hand_type, Hand(self.sort_cards(max_hand))
 
         # 如果没有找到以上牌型，则返回高牌
         return "High Card", Hand(self.sort_cards(cards)[:5])
 
-    def compare_hands(self, cards1: list[Card], cards2: list[Card], hand_type: HAND_TYPE) -> int:
+    def compare_hands(self, cards1: list[Card], cards2: list[Card], hand_type: HandType) -> int:
         """ 实现两手牌的比较，返回1表示hand1更大，-1表示hand2更大，0表示相等 """
-        if hand_type in ("Straight Flush", "Four of a Kind", "Flush", "Straight", "High Card"):
+        if not isinstance(hand_type, HandType):
+            raise TypeError(f"Wrong input type: {hand_type} found")
+        
+        if hand_type in (HandType.ROYAL_FLUSH, 
+                         HandType.STRAIGHT_FLUSH, 
+                         HandType.FOUR_OF_A_KIND, 
+                         HandType.FLUSH, 
+                         HandType.STRAIGHT,
+                         HandType.HIGH_CARD):
             return self._compare_high_cards(cards1, cards2)
-        elif hand_type == "Full House":
+        elif hand_type == HandType.FULL_HOUSE:
             return self._compare_full_house(cards1, cards2)
-        elif hand_type == "Three of a Kind":
+        elif hand_type == HandType.THREE_OF_A_KIND:
             return self._compare_three_of_a_kind(cards1, cards2)
-        elif hand_type == "Two Pairs":
+        elif hand_type == HandType.TWO_PAIRS:
             return self._compare_two_pairs(cards1, cards2)
-        elif hand_type == "One Pair":
+        elif hand_type == HandType.ONE_PAIR:
             return self._compare_one_pair(cards1, cards2)
         else:
-            raise ValueError(f"Wrong input hand_type, {hand_type} found")
+            raise ValueError(f"Wrong input hand_type: {hand_type.value} found")
 
     def find_winner(self):
         # TODO 找出胜者

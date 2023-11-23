@@ -1,27 +1,15 @@
 """ 存储发牌等相关信息 """
 
 import gc
-from enum import Enum
 
-from src.hand import Deck, Hand
-from src.player import Player, Move, Action
-from src.pot import Pot
+from src.components import Action, Deck, Hand, Move, Pot, Street
 from src.evaluator import Evaluator
-
-
-class Street(Enum):
-    """ 四条街 本身就是可迭代的 """
-
-    PRE_FLOP = "Pre-Flop"
-    FLOP = "Flop"
-    TURN = "Turn"
-    RIVER = "River"
 
 
 class Dealer:
     """ 荷官 """
 
-    def __init__(self, players: list[Player], big_blind: int = 20) -> None:
+    def __init__(self, players: list, big_blind: int = 20) -> None:
         self.player_list = players
         self.big_blind = big_blind
         self.pot = Pot()
@@ -93,15 +81,13 @@ class Dealer:
                 self.refresh_screen()  # 刷新屏幕，并且也要覆盖掉之前人的手牌和输入的内容
             # 第一轮所有玩家行动结束
             # 判断是不是只有一个人在场上
-            if len([p for p in self.player_list
-                    if p.action != Action.FOLD]) < 2:
+            if len([p for p in self.player_list if p.action != Action.FOLD]) < 2:
                 # 游戏结束
                 return False
             # 不止一个人在场上
             # 判断是不是所有在场玩家都下注整齐
-            if all(p.current_bet == current_bet
-                   for p in self.player_list
-                   if p.action != Action.FOLD):
+            if all(p.current_bet == current_bet for p in self.player_list
+                   if p.action not in (Action.FOLD, Action.ALL_IN)):
                 # 本圈结束
                 break
 
@@ -159,7 +145,7 @@ class Dealer:
         # 清除屏幕（终端命令）
         print("\033[H\033[J", end="")  # 这是清屏的ANSI转义码
         self.show_community_cards()
-        print("Player\t Money\t" + "\t".join(self.STREETS))
+        print("Player\t Money\t" + "\t".join(s.value for s in Street))
         for player in self.player_list:
             print(player._name+'\t', player._money,
                   player.show_move(), sep=' ')

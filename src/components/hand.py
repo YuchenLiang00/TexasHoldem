@@ -5,9 +5,25 @@ import itertools
 from collections import namedtuple
 from copy import deepcopy
 from typing import Literal
+from enum import Enum
 
 
 Card = namedtuple('Card', ['suit', 'rank'])
+
+
+class HandType(Enum):
+    """ 手牌牌力类型 """
+
+    ROYAL_FLUSH = "Royal Flush"
+    STRAIGHT_FLUSH = "Straight Flush"
+    FOUR_OF_A_KIND = "Four of a Kind"
+    FULL_HOUSE = "Full House"
+    FLUSH = "Flush"
+    STRAIGHT = "Straight"
+    THREE_OF_A_KIND = "Three of a Kind"
+    TWO_PAIRS = "Two Pairs"
+    ONE_PAIR = "One Pair"
+    HIGH_CARD = "High Card"
 
 
 class Hand:

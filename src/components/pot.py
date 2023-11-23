@@ -1,8 +1,7 @@
 """ 彩池管理 """
 
-
-from src.player import Player, Move
-
+from src.components.action import Action
+from src.components.move import Move
 
 class Pot:
     """ 彩池 """
@@ -11,12 +10,12 @@ class Pot:
         # 至少有一个主池
         self.pots = list({"amount": 0, "eligible_players": set()})
 
-    def add_bet(self, player: Player, move: Move):
+    def add_bet(self, player, move: Move):
         # 增加彩池金额
         # 根据玩家下注情况决定增加哪个彩池的金额
         # 如果有玩家all-in，可能需要创建或更新边池
         # 确定应该将下注加入哪个彩池
-        if move.action == 'ALL-IN':
+        if move.action == Action.ALL_IN:
             # 玩家全押，可能需要创建新的边池
             all_in_amount = move.amount
             self.create_side_pot(player, all_in_amount)
@@ -25,7 +24,7 @@ class Pot:
             self.pots[-1]["amount"] += move.amount
             self.pots[-1]["eligible_players"].add(player)
 
-    def create_side_pot(self, all_in_player: Player, all_in_amount: int):
+    def create_side_pot(self, all_in_player, all_in_amount: int):
         # TODO 计算新边池的金额
         new_pot_amount = 0
         for pot in self.pots:
