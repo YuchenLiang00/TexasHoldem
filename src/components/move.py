@@ -6,10 +6,15 @@ class Move:
         self._amount: int = amount
 
     def __str__(self):
-        if self._amount and self.action:
-            return self._action.to_string() + ' ' + str(self._amount)
+        if self._action:
+            action_str = self._action.to_string()
+            if self._amount > 0:
+                return f"{action_str:<6} {self._amount:>5}"
+            else:
+                return f"{action_str:<12}"
         else:
-            return ""
+            return " " * 12
+
 
     @property
     def action(self):

@@ -2,7 +2,7 @@
 import itertools
 from typing import Optional
 
-from src.components.hand import Card, Hand, HandType
+from src.components import Card, Hand, HandType
 
 
 class Evaluator:
@@ -42,8 +42,8 @@ class Evaluator:
 
         for hand_type, hand_check in self.ranking_handles.items():
             max_hand: Optional[list[Card]] = None
-            # combo - combination
-            for combo in itertools.combinations(cards, 5):  # cards 有7张, combo是5张
+            # cards 有7张, combo是5张 combo - combination
+            for combo in itertools.combinations(cards, 5):
                 # 同一副手牌可能既是两对又是葫芦，如果找到先找到两对就返回，则会判断失误
                 # 同样的，如果出现三对牌，则要找到最大的两对，
                 # 出现可能出现两个葫芦、多个顺子的情形，则需要找出最大的作为手牌返回
@@ -63,11 +63,11 @@ class Evaluator:
         """ 实现两手牌的比较，返回1表示hand1更大，-1表示hand2更大，0表示相等 """
         if not isinstance(hand_type, HandType):
             raise TypeError(f"Wrong input type: {hand_type} found")
-        
-        if hand_type in (HandType.ROYAL_FLUSH, 
-                         HandType.STRAIGHT_FLUSH, 
-                         HandType.FOUR_OF_A_KIND, 
-                         HandType.FLUSH, 
+
+        if hand_type in (HandType.ROYAL_FLUSH,
+                         HandType.STRAIGHT_FLUSH,
+                         HandType.FOUR_OF_A_KIND,
+                         HandType.FLUSH,
                          HandType.STRAIGHT,
                          HandType.HIGH_CARD):
             return self._compare_high_cards(cards1, cards2)
@@ -82,7 +82,8 @@ class Evaluator:
         else:
             raise ValueError(f"Wrong input hand_type: {hand_type.value} found")
 
-    def find_winner(self):
+    def find_winner(self) -> list:
+        """ 从各家的手牌中找出胜者 """
         # TODO 找出胜者
         pass
 
@@ -160,7 +161,7 @@ class Evaluator:
 
     # == 更细致的检测函数 ==
     # 两手同样等级的牌的比较，都是5张牌
-    def _compare_high_cards(self, cards1: list[Card], cards2: list[Card]) -> int:
+    def _compare_high_card(self, cards1: list[Card], cards2: list[Card]) -> int:
         """ 高牌的比较，适用于同花顺、四条、同花、顺子、高牌 """
         cards1 = self.sort_cards(cards1)  # 直接把一个列表给传进来了，修改了原列表
         cards2 = self.sort_cards(cards2)

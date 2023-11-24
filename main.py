@@ -12,11 +12,7 @@ def main():
     try:
         dealer.play()
 
-        # 比大小
-        # TODO evaluate hands
 
-        dealer.eval_hands()
-        input("Press Enter to continue...")
         #再来一次
         dealer.reset_deck()
     except KeyboardInterrupt:

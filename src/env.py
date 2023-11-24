@@ -1,8 +1,8 @@
 """ 游戏环境 """
 
 
-from src.dealer import Dealer
-from src.player import Player
+from gamer.dealer import Dealer
+from gamer.player import Player
 
 
 class GameEnv:

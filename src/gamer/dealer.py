@@ -3,7 +3,7 @@
 import gc
 
 from src.components import Action, Deck, Hand, Move, Pot, Street
-from src.evaluator import Evaluator
+from src.gamer.evaluator import Evaluator  # 非常特殊，需要导入同级别目录下的其他文件
 
 
 class Dealer:
@@ -40,16 +40,20 @@ class Dealer:
             # 如果是翻前，则给每个人发手牌
             if street == Street.PRE_FLOP:
                 self.deal_preflop()
-            self.refresh_screen()
-            self.betting_round(street)  # 可能中途结束
-
-            if street != Street.PRE_FLOP:
+            else:
                 # 确定本轮要发的公共牌张数
                 card_num = 3 if street == Street.FLOP else 1
                 self.community_cards[street] = self.deal_cards(card_num)
 
+            self.refresh_screen()
+            self.betting_round(street)  # 可能中途结束
+
         # 河牌圈结束 或中途结束
+        # TODO evaluate hands
         # TODO 找出胜者，分钱，踢出破产的玩家
+
+        self.eval_hands()
+        input("Press Enter to continue...")
 
     def betting_round(self, street, starting_bet: int = 0) -> bool:
         """ 一局中的一圈游戏 返回True则没有中途结束 返回False则中途结束游戏"""
@@ -62,8 +66,9 @@ class Dealer:
                 if player.action != Action.FOLD:
                     # 获取玩家的行动，例如使用 input() 函数或GUI组件
                     player.show_hands()
-                    amount = input(f"Player {player._name} Bet:")
+                    amount = input(f"Bet:")
                     try:  # Sanity check
+                        # TODO 下注量必须比大盲大
                         amount = int(amount)
                     except ValueError:
                         amount = None  # 用户乱输入
@@ -143,12 +148,14 @@ class Dealer:
 
     def refresh_screen(self):
         # 清除屏幕（终端命令）
+        # TODO 美化格式化输出
         print("\033[H\033[J", end="")  # 这是清屏的ANSI转义码
         self.show_community_cards()
-        print("Player\t Money\t" + "\t".join(s.value for s in Street))
+        print(f"{'Player':<10} {'Money':<5} {'Pre-Flop':<12} "
+              f"{'Flop':<12} {'Turn':<12} {'River':<12}")
         for player in self.player_list:
-            print(player._name+'\t', player._money,
-                  player.show_move(), sep=' ')
+            moves = " ".join([str(move) for move in player.show_move()])
+            print(f"{player.name:<10} {player.money:>5} {moves}")
 
     def eval_hands(self):
         """ 计算全部玩家的手牌大小 """
@@ -160,15 +167,15 @@ class Dealer:
             player.show_hands()
             print(combo, hand_name, sep='\t')
 
-        winner = evaluator.find_winner()  # TODO 找出胜者
+        winners = evaluator.find_winner()  # TODO 找出胜者
 
     def reset_deck(self):
         """ 重置牌桌 """
         # TODO 完善销毁机制，记得清空玩家的可变游戏信息
         self._deck = Deck()
-        self.community_cards = {'Flop': Hand(['??'] * 3),
-                                'Turn': Hand(['??']),
-                                'River': Hand(['??'])}
+        self.community_cards = {Street.FLOP: Hand(['??'] * 3), 
+                                Street.TURN: Hand(['??']),  
+                                Street.RIVER: Hand(['??'])}
         self.pot.reset_pot()
         for player in self.player_list:
             player.reset_action()

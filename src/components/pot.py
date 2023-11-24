@@ -1,7 +1,6 @@
 """ 彩池管理 """
 
-from src.components.action import Action
-from src.components.move import Move
+from src.components import Action,Move
 
 class Pot:
     """ 彩池 """

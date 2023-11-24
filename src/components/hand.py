@@ -9,21 +9,29 @@ from enum import Enum
 
 
 Card = namedtuple('Card', ['suit', 'rank'])
+HandTypeTuple = namedtuple("HandTypeTuple", ["htype", "hrank"])
 
 
 class HandType(Enum):
     """ 手牌牌力类型 """
 
-    ROYAL_FLUSH = "Royal Flush"
-    STRAIGHT_FLUSH = "Straight Flush"
-    FOUR_OF_A_KIND = "Four of a Kind"
-    FULL_HOUSE = "Full House"
-    FLUSH = "Flush"
-    STRAIGHT = "Straight"
-    THREE_OF_A_KIND = "Three of a Kind"
-    TWO_PAIRS = "Two Pairs"
-    ONE_PAIR = "One Pair"
-    HIGH_CARD = "High Card"
+    ROYAL_FLUSH = HandTypeTuple("Royal Flush", 1)
+    STRAIGHT_FLUSH = HandTypeTuple("Straight Flush", 2)
+    FOUR_OF_A_KIND = HandTypeTuple("Four of a Kind", 3)
+    FULL_HOUSE = HandTypeTuple("Full House", 4)
+    FLUSH = HandTypeTuple("Flush", 5)
+    STRAIGHT = HandTypeTuple("Straight", 6)
+    THREE_OF_A_KIND = HandTypeTuple("Three of a Kind", 7)
+    TWO_PAIRS = HandTypeTuple("Two Pairs", 8)
+    ONE_PAIR = HandTypeTuple("One Pair", 9)
+    HIGH_CARD = HandTypeTuple("High Card", 10)
+
+    def __str__(self):
+        return self.value.htype
+    
+    def __lt__(self, other):
+        if isinstance(other, HandType):
+            return self.value.hrank < other.value.hrank
 
 
 class Hand:
