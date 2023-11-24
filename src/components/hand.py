@@ -1,5 +1,6 @@
 """ 定义纸牌Card、手牌Hand、一副牌Deck类 """
 
+from functools import total_ordering
 import random
 import itertools
 from collections import namedtuple
@@ -11,7 +12,7 @@ from enum import Enum
 Card = namedtuple('Card', ['suit', 'rank'])
 HandTypeTuple = namedtuple("HandTypeTuple", ["htype", "hrank"])
 
-
+@total_ordering
 class HandType(Enum):
     """ 手牌牌力类型 """
 
@@ -32,6 +33,14 @@ class HandType(Enum):
     def __lt__(self, other):
         if isinstance(other, HandType):
             return self.value.hrank < other.value.hrank
+        else:
+            raise NotImplementedError(f"Can only compare HandType class instance, {type(other)} found.")
+        
+    def __eq__(self, other):
+        if isinstance(other, HandType):
+            return self.value.hrank == other.value.hrank
+        else:
+            raise NotImplementedError(f"Can only compare HandType class instance, {type(other)} found.")
 
 
 class Hand:
@@ -95,9 +104,7 @@ class Deck(Hand):
 
 
 if __name__ == '__main__':
-    h1 = Hand([Card('C', '2')])
-    h2 = Hand([Card('C', '3')])
-    h = h1 + h2
-    print(h)
+
+    print(HandType.ROYAL_FLUSH)
 
     pass

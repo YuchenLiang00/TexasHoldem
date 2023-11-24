@@ -63,25 +63,24 @@ class Dealer:
         # TODO 彩池金额维护，升盲等
         while True:
             for player in self.player_list:
-                if player.action != Action.FOLD:
+                if player.action not in (Action.FOLD, Action.ALL_IN):
                     # 获取玩家的行动，例如使用 input() 函数或GUI组件
-                    player.show_hands()
+                    player.show_hand()
                     amount = input(f"Bet:")
                     try:  # Sanity check
                         # TODO 下注量必须比大盲大
                         amount = int(amount)
                     except ValueError:
                         amount = None  # 用户乱输入
+                    move: Move = player.bet(amount=amount, street=street,
+                                            current_bet=current_bet, min_raise=min_raise)
+
+                    # 根据行动更新 current_bet, min_raise 等
+                    current_bet, min_raise = \
+                        self.examine_player_move(move, current_bet, min_raise)
                 else:
-                    # Fold 短路机制，把后面的street都标记成Fold
-                    amount = -1
-
-                move: Move = player.bet(amount=amount, street=street,
-                                        current_bet=current_bet, min_raise=min_raise)
-
-                # 根据行动更新 current_bet, min_raise 等
-                current_bet, min_raise = \
-                    self.examine_player_move(move, current_bet, min_raise)
+                    # Fold, ALL-IN 短路机制，把后面的street都标记成Fold
+                    pass
 
                 self.refresh_screen()  # 刷新屏幕，并且也要覆盖掉之前人的手牌和输入的内容
             # 第一轮所有玩家行动结束
@@ -164,7 +163,7 @@ class Dealer:
         print("  ------==  Show Hands!  ==------  ")
         for player in self.player_list:
             hand_name, combo = evaluator.evaluate_hand(player._hand)
-            player.show_hands()
+            player.show_hand()
             print(combo, hand_name, sep='\t')
 
         winners = evaluator.find_winner()  # TODO 找出胜者
@@ -186,18 +185,3 @@ class Dealer:
 
 if __name__ == '__main__':
     pass
-# 示例：发牌
-# player_cards = dealer.deal_cards(2)
-# community_cards = dealer.deal_cards(5)
-
-# # 合并玩家和公共牌
-# all_cards = player_cards + community_cards
-
-
-# # 示例：评估手牌
-# best_hand = dealer.evaluate_hand(all_cards)
-
-# # 打印结果（仅作示例）
-# print("玩家的牌:", player_cards)
-# print("公共牌:", community_cards)
-# print("最强手牌:", best_hand)
