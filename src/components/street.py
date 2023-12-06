@@ -18,10 +18,10 @@ namedtuple的第一个参数是新类型的名称，这个名称用于内部表�
 class Street(Enum):
     """ 四条街 本身就是可迭代的 """
 
-    PRE_FLOP = StreetTypeTuple("Pre-Flop", 0)
-    FLOP = StreetTypeTuple("Flop", 1)
-    TURN = StreetTypeTuple("Turn", 2)
-    RIVER = StreetTypeTuple("River", 3)
+    PRE_FLOP = StreetTypeTuple("Pre-Flop", 1)
+    FLOP = StreetTypeTuple("Flop", 2)
+    TURN = StreetTypeTuple("Turn", 3)
+    RIVER = StreetTypeTuple("River", 4)
 
     def __str__(self):
         return self.value.name
@@ -39,6 +39,9 @@ class Street(Enum):
         else:
             raise NotImplementedError(
                 f"Can only compare Street class instance, {type(other)} found.")
+        
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 
 if __name__ == '__main__':

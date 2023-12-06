@@ -1,11 +1,13 @@
 """ 定义玩家的信息和行为 """
 
 
+from collections import defaultdict
 import gc
 from copy import deepcopy
 from typing import Optional
 
-from src.components import Hand, Street, Action, Move
+from src.components import Street, Action, Move, Hand
+from src.components.card import Card
 
 
 class Player:
@@ -15,11 +17,13 @@ class Player:
     def __init__(self, name: str) -> None:
         self._name = name
         self._money = Player.INIT_MONEY
-        self._bet_history = {Street.PRE_FLOP: [], Street.FLOP: [],
-                             Street.TURN: [], Street.RIVER: []}
-        self._action: Action = None
+        self._bet_history = defaultdict(list)
+        self._action: Optional[Action] = None
         self._current_bet: int = 0
-        self._hand: Hand = None
+        self._hand: Optional[Hand] = None
+
+    def __str__(self):
+        return self._name
 
     def bet(self,
             street: str,
@@ -102,7 +106,7 @@ class Player:
         else:
             # fold
             # 标记玩家弃牌
-            self._current_bet = None
+            # self._current_bet = None  # 仍然保留本条街上已经下注的金额
             self._action = Action.FOLD
             # TODO 直接把玩家的接下来几条街的行动全都标记为Fold，在dealer中直接跳过
         
@@ -119,16 +123,14 @@ class Player:
     def set_hand(self, hand):
         """ 接受荷官的发牌 重置一些参数"""
         self._hand = hand
-        self._bet_history = {Street.PRE_FLOP: [], Street.FLOP: [],
-                             Street.TURN: [], Street.RIVER: []}
+        self._bet_history = defaultdict(list)
         self._aciton = None
         self._current_bet = 0
         gc.collect()
 
-    def show_hand(self,) -> str:
+    def show_hand(self):
         """ 展示手牌 """
-        print(f"{self._name:<10} {self._hand}", end="\t")
-        return self._name, self._hand
+        print(f"{self._name:<10}"," ".join(map(str, self._hand)), end="\t") # type: ignore
 
     def show_move(self,) -> list[str]:
         """ 展示行动 """
@@ -160,11 +162,12 @@ class Player:
 
     @property
     def hand(self):
-        return deepcopy(self._hand)
+        return self._hand
 
     @property
     def money(self):
         return self._money
 
+    
 if __name__ == '__main__':
     print(Action.FOLD.value)

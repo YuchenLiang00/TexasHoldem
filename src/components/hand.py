@@ -1,5 +1,6 @@
 """ 定义纸牌Card、手牌Hand、一副牌Deck类 """
 
+from __future__ import annotations
 from functools import total_ordering
 import random
 import itertools
@@ -8,8 +9,8 @@ from copy import deepcopy
 from typing import Literal
 from enum import Enum
 
+from src.components import Card
 
-Card = namedtuple('Card', ['suit', 'rank'])
 HandTypeTuple = namedtuple("HandTypeTuple", ["htype", "hrank"])
 
 @total_ordering
@@ -41,9 +42,12 @@ class HandType(Enum):
             return self.value.hrank == other.value.hrank
         else:
             raise NotImplementedError(f"Can only compare HandType class instance, {type(other)} found.")
+    
+    def __hash__(self) -> int:
+        return super().__hash__()
 
 
-class Hand:
+''' class Hand:
     """ 手牌 """
     SUITS: tuple = ('♥', '♦', '♣', '♠')
     RANKS: tuple = ('2', '3', '4', '5', '6','7', 
@@ -62,7 +66,7 @@ class Hand:
         return self._cards[index]
 
     def __str__(self):
-        l = [s + r for s, r in self._cards]
+        l = [str(s) for s in self._cards]
         return ' '.join(l)
 
     def __add__(self, other):
@@ -88,15 +92,20 @@ class Hand:
 
     @property
     def cards(self):
-        return deepcopy(self._cards)
+        return deepcopy(self._cards) """
 
+# type Hand = list[Card]
+'''
+Hand = list[Card]
 
-class Deck(Hand):
+class Deck:
     """ 一副完整的牌 (特殊的手牌) """
-
+    SUITS: tuple = ('♥', '♦', '♣', '♠')
+    RANKS: tuple = ('2', '3', '4', '5', '6','7',
+                    '8', '9', 'T', 'J', 'Q', 'K', 'A')
     def __init__(self) -> None:
         self._cards = [Card(s, r) for s, r
-                       in itertools.product(Hand.SUITS, Hand.RANKS)]
+                       in itertools.product(Deck.SUITS, Deck.RANKS)]
         random.shuffle(self._cards)
 
     def pop(self,):

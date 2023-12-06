@@ -1,36 +1,31 @@
 """ 存储发牌等相关信息 """
 
+from __future__ import annotations
+from itertools import chain
 import gc
 
 from src.components import Action, Deck, Hand, Move, Pot, Street
-from src.gamer.evaluator import Evaluator  # 非常特殊，需要导入同级别目录下的其他文件
+from src.components.evaluator import Evaluator
+from src.gamer.player import Player  # 非常特殊，需要导入同级别目录下的其他文件
 
 
 class Dealer:
     """ 荷官 """
 
     def __init__(self, players: list, big_blind: int = 20) -> None:
-        self.player_list = players
+        self.player_list: list[Player] = players
         self.big_blind = big_blind
         self.pot = Pot()
 
     # 发牌函数
-    def deal_cards(self, number) -> Hand:
-        return Hand([self._deck.pop() for _ in range(number)])
+    def deal_cards(self, number) -> list:
+        return [self._deck.pop() for _ in range(number)]
 
     def deal_preflop(self,):
         """ 给玩家发牌 """
         for player in self.player_list:
             player.set_hand(self.deal_cards(2))
         return
-
-    def get_players_hands(self) -> list[Hand]:
-        """ 
-        获取所有玩家的手牌 
-        返回是一个包含着hand的list 每个hand是一个玩家的手牌
-        目的是传入evaluator参与计算
-        """
-        return [player.hand for player in self.player_list]
 
     def play(self):
         """ 完整的一局游戏 """
@@ -145,6 +140,29 @@ class Dealer:
             print(k, v, sep=' ', end='\t')
         print()
 
+    def eval_hands(self):
+        """ 计算全部玩家的手牌大小 """
+        # 逐个地将玩家的手牌传入evaluator.evaluate_hand()当中
+        print("===  Show Hands!  ===".center(68, "-"))
+        player_hand_info = []
+        board = list(chain.from_iterable(
+            cards for cards in self.community_cards.values()))
+        for player in self.player_list:
+            if player.action != Action.FOLD:
+                # hand_type: HandType; hand:Hand = evaluator.evaluate_hand(player.hand)
+                hand_rank, rank_string, combo = Evaluator.evaluate(
+                    player.hand, board)  # type: ignore
+                player.show_hand()
+                print(" ".join(map(str, sorted(combo, reverse=True))),
+                      rank_string, sep='\t')
+                player_hand_info.append((player, hand_rank))
+
+        winners = self.find_winners(player_hand_info)  # TODO 找出胜者 ,数字小的手牌大
+
+    def find_winners(self, player_hand_info):
+        ranked_players = sorted(player_hand_info, key=lambda x: x[1])
+        return dict(ranked_players)
+
     def refresh_screen(self):
         # 清除屏幕（终端命令）
         # TODO 美化格式化输出
@@ -156,25 +174,13 @@ class Dealer:
             moves = " ".join([str(move) for move in player.show_move()])
             print(f"{player.name:<10} {player.money:>5} {moves}")
 
-    def eval_hands(self):
-        """ 计算全部玩家的手牌大小 """
-        evaluator = Evaluator(self.community_cards)
-        # 逐个地将玩家的手牌传入evaluator.evaluate_hand()当中
-        print("  ------==  Show Hands!  ==------  ")
-        for player in self.player_list:
-            hand_name, combo = evaluator.evaluate_hand(player._hand)
-            player.show_hand()
-            print(combo, hand_name, sep='\t')
-
-        winners = evaluator.find_winner()  # TODO 找出胜者
-
     def reset_deck(self):
         """ 重置牌桌 """
         # TODO 完善销毁机制，记得清空玩家的可变游戏信息
         self._deck = Deck()
-        self.community_cards = {Street.FLOP: Hand(['??'] * 3), 
-                                Street.TURN: Hand(['??']),  
-                                Street.RIVER: Hand(['??'])}
+        self.community_cards = {Street.FLOP: ['??'] * 3,
+                                Street.TURN: ['??'],
+                                Street.RIVER: ['??']}
         self.pot.reset_pot()
         for player in self.player_list:
             player.reset_action()

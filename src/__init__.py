@@ -1,4 +1,4 @@
 from .gamer.player import Player
 from .gamer.dealer import Dealer
-from .gamer.evaluator import Evaluator
-from .gamer.helper import Helper
+from .gamer.evaluator_D import Evaluator
+from .components.helper import Helper
