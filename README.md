@@ -15,3 +15,9 @@ Final Project of Programming Design
 8. 胜率计算器的构造
 9. 输光了的玩家需要从玩家名单中踢出
 10. 盲注的维护
+
+
+## Credits
+
+This project uses code from [SirRender00/texasholdem](https://github.com/SirRender00/texasholdem)
+under the MIT License. See [card.py](./src/components/card.py) for the source code.
