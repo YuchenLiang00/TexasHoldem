@@ -1,5 +1,10 @@
+
 class Move:
-    """ 玩家的行动 """
+    """ 
+    玩家的行动 properties:
+    action
+    amount 
+    """
 
     def __init__(self, action=None, amount: int = 0) -> None:
         self._action = action

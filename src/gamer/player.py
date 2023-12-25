@@ -7,16 +7,15 @@ from copy import deepcopy
 from typing import Optional
 
 from src.components import Street, Action, Move, Hand
-from src.components.card import Card
 
 
 class Player:
     """ 玩家 """
     INIT_MONEY = 1_000
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, money:Optional[int]=None) -> None:
         self._name = name
-        self._money = Player.INIT_MONEY
+        self._money = Player.INIT_MONEY if not money else money
         self._bet_history = defaultdict(list)
         self._action: Optional[Action] = None
         self._current_bet: int = 0
@@ -154,11 +153,15 @@ class Player:
 
     @property
     def bet_history(self):
-        return deepcopy(self._bet_history)  # 深拷贝
+        return deepcopy(self._bet_history)  # type: ignore # 深拷贝
 
     @property
     def current_bet(self):
         return self._current_bet
+    
+    @property
+    def last_move(self) -> Move:
+        return Move(self._aciton, self._current_bet)
 
     @property
     def hand(self):

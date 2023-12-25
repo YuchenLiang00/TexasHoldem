@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class Action(Enum):
-    """ 玩家动作类型 """
+    """ Enum: 玩家动作类型 """
 
     FOLD = 'Fold'
     CALL = 'Call'

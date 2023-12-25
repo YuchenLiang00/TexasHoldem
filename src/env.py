@@ -1,7 +1,7 @@
 """ 游戏环境 """
 
 
-from gamer.dealer import Dealer
+from src.dealer import Dealer
 from gamer.player import Player
 
 

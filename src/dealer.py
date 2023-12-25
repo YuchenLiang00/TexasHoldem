@@ -1,12 +1,11 @@
 """ 存储发牌等相关信息 """
 
-from __future__ import annotations
+
 from itertools import chain
 import gc
 
-from src.components import Action, Deck, Hand, Move, Pot, Street
-from src.components.evaluator import Evaluator
-from src.gamer.player import Player  # 非常特殊，需要导入同级别目录下的其他文件
+from src.components import Action, Deck, Hand, Move, Street, Evaluator
+from src.gamer import Player, PotManager
 
 
 class Dealer:
@@ -15,7 +14,7 @@ class Dealer:
     def __init__(self, players: list, big_blind: int = 20) -> None:
         self.player_list: list[Player] = players
         self.big_blind = big_blind
-        self.pot = Pot()
+        self.pot_manager = PotManager()
 
     # 发牌函数
     def deal_cards(self, number) -> list:
@@ -31,6 +30,7 @@ class Dealer:
         """ 完整的一局游戏 """
         # TODO 完善play 的功能
         self.reset_deck()
+        
         for street in Street:
             # 如果是翻前，则给每个人发手牌
             if street == Street.PRE_FLOP:
@@ -89,6 +89,8 @@ class Dealer:
                    if p.action not in (Action.FOLD, Action.ALL_IN)):
                 # 本圈结束
                 break
+        self.pot_manager.update_pots(self.player_list)
+        input()
 
         # 重置玩家的当前下注额
         for player in self.player_list:
@@ -143,7 +145,7 @@ class Dealer:
     def eval_hands(self):
         """ 计算全部玩家的手牌大小 """
         # 逐个地将玩家的手牌传入evaluator.evaluate_hand()当中
-        print("===  Show Hands!  ===".center(68, "-"))
+        print("===  Showdown!  ===".center(68, "-"))
         player_hand_info = []
         board = list(chain.from_iterable(
             cards for cards in self.community_cards.values()))
@@ -168,7 +170,9 @@ class Dealer:
         # TODO 美化格式化输出
         print("\033[H\033[J", end="")  # 这是清屏的ANSI转义码
         self.show_community_cards()
-        print(f"{'Player':<10} {'Money':<5} {'Pre-Flop':<12} "
+        
+        print(f"\nTotal Chips : {self.pot_manager.get_total_chips()}")
+        print(f"\n{'Player':<10} {'Money':<5} {'Pre-Flop':<12} "
               f"{'Flop':<12} {'Turn':<12} {'River':<12}")
         for player in self.player_list:
             moves = " ".join([str(move) for move in player.show_move()])
@@ -181,7 +185,7 @@ class Dealer:
         self.community_cards = {Street.FLOP: ['??'] * 3,
                                 Street.TURN: ['??'],
                                 Street.RIVER: ['??']}
-        self.pot.reset_pot()
+        self.pot_manager.reset_pot()
         for player in self.player_list:
             player.reset_action()
             player.reset_current_bet()
