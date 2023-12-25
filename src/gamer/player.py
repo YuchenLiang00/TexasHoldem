@@ -23,6 +23,9 @@ class Player:
 
     def __str__(self):
         return self._name
+    
+    def __repr__(self):
+        return f"{self._name}({self._money}, {self._action})"
 
     def bet(self,
             street: str,
@@ -127,6 +130,9 @@ class Player:
         self._current_bet = 0
         gc.collect()
 
+    def add_chips(self, chips):
+        self._money += chips
+
     def show_hand(self):
         """ 展示手牌 """
         print(f"{self._name:<10}"," ".join(map(str, self._hand)), end="\t") # type: ignore
@@ -141,7 +147,7 @@ class Player:
         self._current_bet = 0
 
     def reset_action(self):
-        self._aciton = None
+        self._action = None
 
     @property
     def name(self):
