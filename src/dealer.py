@@ -4,6 +4,8 @@
 from collections import deque
 from itertools import chain
 import gc
+import time
+from tkinter.tix import Tree
 
 from src.components import Action, Deck, Hand, Move, Street, Evaluator
 from src.gamer import Player, PotManager
@@ -31,10 +33,13 @@ class Dealer:
         """ 完整的一局游戏 """
         # TODO 完善play 的功能
         while self.player_list:
-            print(self.player_list)
-            input()
             self.reset_deck()
-            
+            print(f"Player:\n"+"\n".join(repr(s) for s in self.player_list))
+
+            # for i in range(1, 4):
+            #     print("\rLoading" + "." * i, end='', flush=True)
+            #     time.sleep(1)
+
             for street in Street:
                 # 如果是翻前，则给每个人发手牌
                 if street == Street.PRE_FLOP:
@@ -48,7 +53,7 @@ class Dealer:
                 self.betting_round(street)  # 可能中途结束
 
             # 河牌圈结束 或中途结束
-
+            self.refresh_screen()
             self.eval_hands()
             self.kick_losers()
             input("Press Enter to continue...")
@@ -58,12 +63,17 @@ class Dealer:
         current_bet = starting_bet  # 每一圈之后重置
         min_raise = starting_bet  # 如果有盲注，则starting_bet不为0
         last_raiser = None
-        action_queue = deque(p for p in self.player_list 
+        active_players: list[Player] = [p for p in self.player_list if p not in self.wait_players]
+        action_queue = deque(p for p in active_players
                              if p.action not in (Action.FOLD, Action.ALL_IN))
+        if len(action_queue) == 1: 
+            return True
 
         while action_queue:
             # 不能直接遍历这个列表了，因为我们不能允许最后一个加注的人还继续加注。
             player = action_queue.popleft()
+            if player is last_raiser:
+                continue # 这里continue 和break的作用是一样的
             player.show_hand()
             amount = input(f"Bet:")
             # 获取玩家的行动，例如使用 input() 函数或GUI组件
@@ -77,29 +87,31 @@ class Dealer:
 
             # 如果玩家加注，则重置队列，让其他玩家有机会相应
             # FIXME: 目前有很多bug
-            if move.amount > current_bet and player != last_raiser:
+            if move.amount > current_bet:
                 last_raiser = player
-                for p in self.player_list:
+                for p in active_players:
                     if (p not in action_queue and 
                         p.action not in (Action.FOLD, Action.ALL_IN, Action.RAISE)):
                         action_queue.append(p)
                 if move.action != Action.ALL_IN:
                     action_queue.append(player)
-            print(action_queue)
-            input()
 
             # 根据行动更新 current_bet, min_raise 等
             current_bet, min_raise = self.examine_player_move(move, current_bet, min_raise)
             self.refresh_screen()  # 刷新屏幕，并且也要覆盖掉之前人的手牌和输入的内容
 
-        self.pot_manager.update_pots(self.player_list)
-        
+        self.pot_manager.update_pots(active_players)
+        # for pot in self.pot_manager.pots:
+        #     print(pot)
+        # input()
 
         # 重置玩家的当前下注额
-        for player in self.player_list:
-            if player.action != Action.FOLD:
+        for player in active_players:
+            if player.action not in (Action.FOLD, Action.ALL_IN):
                 player.reset_current_bet()
                 player.reset_action()
+            else:
+                self.wait_players.append(player)
 
         return True
 
@@ -108,7 +120,6 @@ class Dealer:
                             current_bet: int,
                             min_raise: int) -> tuple[int, int]:
         """ 检查玩家的下注操作 维护并返回current_bet, min_raise """
-        # TODO
         if move.action in (Action.FOLD, Action.CHECK, Action.CALL):
             # 玩家call，check，fold无需修改current_bet 和min_raise
             pass
@@ -139,7 +150,7 @@ class Dealer:
         return current_bet, min_raise
 
     def show_community_cards(self):
-        # TODO 完善发牌时展示公共牌的流程
+        # 完善发牌时展示公共牌的流程
         print("Community Cards: ", end=" ")
         for k, v in self.community_cards.items():
             print(k, v, sep=' ', end='\t')
@@ -160,12 +171,10 @@ class Dealer:
                       rank_string, sep='\t')
                 player_hand_info.append((player, hand_rank))
 
-        winners = self.find_winners(player_hand_info)  # TODO 找出胜者 ,数字小的手牌大
+        winners = self.find_winners(player_hand_info)  # 找出胜者 ,数字小的手牌大
 
     def find_winners(self, player_hand_info):
         ranked_players = sorted(player_hand_info, key=lambda x: x[1])
-        # 初始化底池胜者字典
-        pot_winners = {}
 
         # 处理每个底池
         for pot in self.pot_manager.pots:
@@ -174,7 +183,7 @@ class Dealer:
                                               if player in pot.eligible_players]
 
             # 如果没有资格的玩家，跳过这个底池
-            # 这是不是不存在的情况
+            # 我们经常会创建很多空底池，所以需要这个保护机制
             if not eligible_players:
                 continue
 
@@ -185,12 +194,12 @@ class Dealer:
                        if hand_rank == max_hand_rank and player in eligible_players]
             # pot_winners[pot] = winners
             # 处理底池的分配
-            # TODO: 分配底池筹码给胜者
+            # 分配底池筹码给胜者
             for winner in winners:
-                winner.add_chips(pot.amount / len(winners))
+                winner.add_chips(round(pot.amount / len(winners)))
                 
         # 返回底池胜者信息
-        return pot_winners
+        return 
     
     def kick_losers(self):
         losers = [p for p in self.player_list if p.money == 0]
@@ -218,6 +227,7 @@ class Dealer:
                                 Street.TURN: ['??'],
                                 Street.RIVER: ['??']}
         self.pot_manager.reset_pot()
+        self.wait_players = []
         for player in self.player_list:
             player.reset_action()
             player.reset_current_bet()

@@ -94,7 +94,7 @@ class LookupTable:
         4: "Flush",
         5: "Straight",
         6: "Three of a Kind",
-        7: "Two Pairs",
+        7: "Two Pair",
         8: "One Pair",
         9: "High card",
     }

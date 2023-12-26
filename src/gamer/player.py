@@ -25,7 +25,7 @@ class Player:
         return self._name
     
     def __repr__(self):
-        return f"{self._name}({self._money}, {self._action})"
+        return f"{self._name}\t({self._money}, {self._action})"
 
     def bet(self,
             street: str,
@@ -45,7 +45,6 @@ class Player:
 
         这里要完善根据输入的amout标记call、raise、fold、check的行为:
         if amount > money, 或 current_bet > money且amount > 0, 视为allin
-        if amount 
         if amount <= 0, 视为fold
         if current_bet = 0 且 amount = 0, 视为check
         else 视为跟注。逻辑上来说，乱输入也算跟注
@@ -110,7 +109,7 @@ class Player:
             # 标记玩家弃牌
             # self._current_bet = None  # 仍然保留本条街上已经下注的金额
             self._action = Action.FOLD
-            # TODO 直接把玩家的接下来几条街的行动全都标记为Fold，在dealer中直接跳过
+            # 直接把玩家的接下来几条街的行动全都标记为Fold，在dealer中直接跳过
         
         move = Move(self._action, self._current_bet)
         if self._aciton in (Action.FOLD, Action.ALL_IN):

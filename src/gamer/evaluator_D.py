@@ -22,7 +22,7 @@ class HandType(Enum):
     FLUSH = HandTypeTuple("Flush", 5)
     STRAIGHT = HandTypeTuple("Straight", 6)
     THREE_OF_A_KIND = HandTypeTuple("Three of a Kind", 7)
-    TWO_PAIRS = HandTypeTuple("Two Pairs", 8)
+    TWO_PAIRS = HandTypeTuple("Two Pair", 8)
     ONE_PAIR = HandTypeTuple("One Pair", 9)
     HIGH_CARD = HandTypeTuple("High Card", 10)
 
