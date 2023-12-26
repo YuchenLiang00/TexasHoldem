@@ -35,7 +35,7 @@ class Dealer:
             self.reset_deck()
 
             # 睡眠机制
-            print(f"Players on Board:\n"+"\n".join(repr(s) for s in self.player_list))
+            print(f"Players on Board:\n" + "\n".join(repr(s) for s in self.player_list))
             for i in range(1, 4):
                 print("\rLoading" + "." * i, end='', flush=True)
                 time.sleep(1)
@@ -55,7 +55,7 @@ class Dealer:
             # 河牌圈结束 或中途结束
             self.refresh_screen()
             self.eval_hands()
-            self.kick_losers()
+            self.kickoff_losers()
             input("Press Enter to continue...")
 
     def betting_round(self, street, starting_bet: int = 0) -> bool:
@@ -86,7 +86,6 @@ class Dealer:
                                     current_bet=current_bet, min_raise=min_raise)
 
             # 如果玩家加注，则重置队列，让其他玩家有机会相应
-            # FIXME: 目前有很多bug
             if move.amount > current_bet:
                 last_raiser = player
                 for p in active_players:
@@ -201,7 +200,7 @@ class Dealer:
         # 返回底池胜者信息
         return 
     
-    def kick_losers(self):
+    def kickoff_losers(self):
         losers = [p for p in self.player_list if p.money == 0]
         for loser in losers:
             self.player_list.remove(loser)
@@ -221,7 +220,7 @@ class Dealer:
 
     def reset_deck(self):
         """ 重置牌桌 """
-        # TODO 完善销毁机制，记得清空玩家的可变游戏信息
+        # 完善销毁机制，记得清空玩家的可变游戏信息
         self._deck = Deck()
         self.community_cards = {Street.FLOP: ['??'] * 3,
                                 Street.TURN: ['??'],
