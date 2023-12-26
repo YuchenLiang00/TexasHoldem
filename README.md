@@ -1,32 +1,23 @@
-# TexasHoldem
-Final Project of Programming Design
-my_poker_game/  
-│  
-├── src/                  # 源代码  
-│   ├── __init__.py  
-│   ├── game.py           # 游戏逻辑  
-│   ├── hand_evaluation/  # 用于评估手牌的模块  
-│   │   ├── __init__.py  
-│   │   ├── evaluator.py  
-│   │   └── helpers.py  
-│   ├── network/          # 网络通信模块  
-│   │   ├── __init__.py  
-│   │   ├── server.py  
-│   │   └── client.py  
-│   └── ui/               # 用户界面模块  
-│       ├── __init__.py  
-│       ├── main_window.py  
-│       └── widgets.py    
-│  
-├── tests/                # 测试代码  
-│   ├── __init__.py  
-│   └── test_game.py  
-│  
-├── bin/                  # 可执行脚本  
-│   └── run_game.py  
-│  
-├── docs/                 # 文档  
-│   └── ...  
-│  
-├── setup.py              # 安装脚本  
-└── README.md             # 项目说明文件  
+# Unlimited Texas Hold'em
+Final Project of Programming Design  
+
+
+## 遇到的问题
+1. 玩家下注行为的细分
+   1. Raise, Call, All-in的判断
+   2. 玩家出现raise, all-in to call时，当前的current_bet 和 min_raise的维护
+2. 奖池的计算
+3. 大盲小盲的前置
+4. 当玩家出现all-in时，边池的计算
+5. 牌桌位置的确定（button, sb, bb）
+6. 赢家的确定
+7. 同一牌力等级的细分比较
+8. 胜率计算器的构造
+9. 输光了的玩家需要从玩家名单中踢出
+10. 盲注的维护
+
+
+## Credits
+
+This project uses code from [SirRender00/texasholdem](https://github.com/SirRender00/texasholdem)
+under the MIT License. See [card.py](./src/components/card.py) for the source code.
