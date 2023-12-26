@@ -5,7 +5,6 @@ from collections import deque
 from itertools import chain
 import gc
 import time
-from tkinter.tix import Tree
 
 from src.components import Action, Deck, Hand, Move, Street, Evaluator
 from src.gamer import Player, PotManager
@@ -34,11 +33,12 @@ class Dealer:
         # TODO 完善play 的功能
         while self.player_list:
             self.reset_deck()
-            print(f"Player:\n"+"\n".join(repr(s) for s in self.player_list))
 
-            # for i in range(1, 4):
-            #     print("\rLoading" + "." * i, end='', flush=True)
-            #     time.sleep(1)
+            # 睡眠机制
+            print(f"Players on Board:\n"+"\n".join(repr(s) for s in self.player_list))
+            for i in range(1, 4):
+                print("\rLoading" + "." * i, end='', flush=True)
+                time.sleep(1)
 
             for street in Street:
                 # 如果是翻前，则给每个人发手牌
