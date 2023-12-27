@@ -1,9 +1,9 @@
-from collections import deque
-from itertools import chain
 import gc
 import math
 import time
 import random
+from collections import deque
+from itertools import chain
 from typing import Optional
 
 from src.components import Action, Deck, Move, Street, Evaluator, Position
