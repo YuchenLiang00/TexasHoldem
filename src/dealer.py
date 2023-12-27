@@ -1,21 +1,27 @@
-""" 存储发牌等相关信息 """
-
-
 from collections import deque
 from itertools import chain
 import gc
+import math
 import time
+import random
+from typing import Optional
 
-from src.components import Action, Deck, Hand, Move, Street, Evaluator
+from src.components import Action, Deck, Move, Street, Evaluator, Position
 from src.gamer import Player, PotManager
 
 
 class Dealer:
     """ 荷官 """
 
-    def __init__(self, players: list, big_blind: int = 20) -> None:
-        self.player_list: list[Player] = players
+    def __init__(self, 
+                 players: list, 
+                 big_blind: int = 20, 
+                 small_blind: int = 0) -> None:
+        random.shuffle(players)  # 随机打乱玩家顺序
+        self.player_queue = deque(players)
+        # self.player_list: list[Player] = players
         self.big_blind = big_blind
+        self.small_blind = small_blind if small_blind else math.ceil(self.big_blind / 2)
         self.pot_manager = PotManager()
 
     # 发牌函数
@@ -24,18 +30,21 @@ class Dealer:
 
     def deal_preflop(self,):
         """ 给玩家发牌 """
-        for player in self.player_list:
+        for player in self.player_queue:
             player.set_hand(self.deal_cards(2))
         return
 
     def play(self):
         """ 完整的一局游戏 """
         # TODO 完善play 的功能
-        while self.player_list:
+        
+        while len(self.player_queue) > 1:
             self.reset_deck()
 
             # 睡眠机制
-            print(f"Players on Board:\n" + "\n".join(repr(s) for s in self.player_list))
+            print(f"Players on Board:")
+            print("\n".join('\t'.join([str(p), str(p.money)]) 
+                            for p in self.player_queue))
             for i in range(1, 4):
                 print("\rLoading" + "." * i, end='', flush=True)
                 time.sleep(1)
@@ -43,6 +52,7 @@ class Dealer:
             for street in Street:
                 # 如果是翻前，则给每个人发手牌
                 if street == Street.PRE_FLOP:
+                    self.set_positions()
                     self.deal_preflop()
                 else:
                     # 确定本轮要发的公共牌张数
@@ -57,31 +67,40 @@ class Dealer:
             self.eval_hands()
             self.kickoff_losers()
             input("Press Enter to continue...")
+        print(f"  Winner: {self.player_queue.pop()}  ".center(68, "!"))
 
-    def betting_round(self, street, starting_bet: int = 0) -> bool:
+    def betting_round(self, street: Street) -> bool:
         """ 一局中的一圈游戏 返回True则没有中途结束 返回False则中途结束游戏"""
-        current_bet = starting_bet  # 每一圈之后重置
-        min_raise = starting_bet  # 如果有盲注，则starting_bet不为0
+        # 每一圈之后重置 如果有盲注，则starting_bet不为0
+        current_bet = 0   
+        min_raise = 0
         last_raiser = None
-        active_players: list[Player] = [p for p in self.player_list if p not in self.wait_players]
-        action_queue = deque(p for p in active_players
-                             if p.action not in (Action.FOLD, Action.ALL_IN))
+        active_players: list[Player] = [p for p in self.player_queue if p not in self.wait_players]
+        action_queue: deque[Player] = deque(p for p in active_players
+                                            if p.action not in (Action.FOLD, Action.ALL_IN))
         if len(action_queue) == 1: 
+            # 只有一位可以行动的玩家，则直接进入河牌圈比大小
             return True
+        betted_players = set(active_players)
+        if street == Street.PRE_FLOP:
+            # 翻前圈，给盲位玩家下注
+            rotate_num = self.blind_players_bet(action_queue)
+            current_bet = self.big_blind
+            min_raise = self.big_blind
+
+            action_queue.rotate(rotate_num)  # 两位玩家都在队列中
+            active_players = list(action_queue)
+            self.refresh_screen()  # 刷新屏幕，并且也要覆盖掉之前人的手牌和输入的内容
+
 
         while action_queue:
+            # 翻前强制给SB、BB下注
             # 不能直接遍历这个列表了，因为我们不能允许最后一个加注的人还继续加注。
             player = action_queue.popleft()
             if player is last_raiser:
                 continue # 这里continue 和break的作用是一样的
-            player.show_hand()
-            amount = input(f"Bet:")
-            # 获取玩家的行动，例如使用 input() 函数或GUI组件
-            try:  # Sanity check
-                # TODO 下注量必须比大盲大
-                amount = int(amount)
-            except ValueError:
-                amount = None  # 用户乱输入
+
+            amount = self.get_player_bet(player)
             move: Move = player.bet(amount=amount, street=street,
                                     current_bet=current_bet, min_raise=min_raise)
 
@@ -98,11 +117,8 @@ class Dealer:
             # 根据行动更新 current_bet, min_raise 等
             current_bet, min_raise = self.examine_player_move(move, current_bet, min_raise)
             self.refresh_screen()  # 刷新屏幕，并且也要覆盖掉之前人的手牌和输入的内容
-
-        self.pot_manager.update_pots(active_players)
-        # for pot in self.pot_manager.pots:
-        #     print(pot)
-        # input()
+        
+        self.pot_manager.update_pots(betted_players)
 
         # 重置玩家的当前下注额
         for player in active_players:
@@ -113,7 +129,44 @@ class Dealer:
                 self.wait_players.append(player)
 
         return True
+    
+    def get_player_bet(self, player: Player) -> Optional[int]:
+        """ 获取玩家的下注量 """
+        player.show_hand()
+        amount = input(f"Bet:")
+        try:
+            amount = int(amount)
+        except ValueError:
+            amount = None  # 用户乱输入
+        return amount
+    
+    def blind_players_bet(self, action_queue):
+        """ 处理翻前的小盲和大盲下注 """
+        sb_player = self.player_queue[0]
+        bb_player = self.player_queue[1]
+        rotate_num = -2
+        # 如果小盲或大盲必须all-in，则移除他们的行动权
+        if sb_player.money <= self.small_blind:
+            amount = sb_player.money 
+            action_queue.remove(sb_player)
+            rotate_num += 1
+        else:
+            amount = self.small_blind
+        sb_player.bet(amount=amount, street=Street.PRE_FLOP,
+                        current_bet=0, min_raise=0)
 
+        # 如果小盲或大盲必须all-in，则移除他们的行动权
+        if bb_player.money <= self.big_blind:
+            amount = bb_player.money  
+            action_queue.remove(bb_player)
+            rotate_num += 1 
+        else:
+            amount = self.big_blind
+        bb_player.bet(amount=amount, street=Street.PRE_FLOP,
+                                    current_bet=0, min_raise=0)
+
+        return rotate_num
+    
     def examine_player_move(self,
                             move: Move,
                             current_bet: int,
@@ -162,7 +215,7 @@ class Dealer:
         player_hand_info = []
         board = list(chain.from_iterable(
             cards for cards in self.community_cards.values()))
-        for player in self.player_list:
+        for player in self.player_queue:
             if player.action != Action.FOLD:
                 hand_rank, rank_string, combo = Evaluator.evaluate(player.hand, board)  # type: ignore
                 player.show_hand()
@@ -201,9 +254,22 @@ class Dealer:
         return 
     
     def kickoff_losers(self):
-        losers = [p for p in self.player_list if p.money == 0]
+        """ 踢掉破产玩家 """
+        losers = [p for p in self.player_queue if p.money == 0]
         for loser in losers:
-            self.player_list.remove(loser)
+            self.player_queue.remove(loser)
+        return
+    
+    def set_positions(self):
+        """ 更新玩家位置 """
+        # 为每个玩家分配一个位置
+        for i, player in enumerate(self.player_queue):
+            player.set_position(Position(i))
+
+        # 将庄家移至队列尾部，为下一轮游戏做准备
+        self.player_queue.rotate(-1)
+
+        return
 
     def refresh_screen(self):
         # 清除屏幕（终端命令）
@@ -212,11 +278,11 @@ class Dealer:
         self.show_community_cards()
         
         print(f"\nTotal Chips : {self.pot_manager.get_total_chips()}")
-        print(f"\n{'Player':<10} {'Money':<5} {'Pre-Flop':<12} "
+        print(f"\n{'Player':<9} {'Money':<5} {'Pre-Flop':<12} "
               f"{'Flop':<12} {'Turn':<12} {'River':<12}")
-        for player in self.player_list:
+        for i, player in enumerate(self.player_queue):
             moves = " ".join([str(move) for move in player.show_move()])
-            print(f"{player.name:<10} {player.money:>5} {moves}")
+            print(f"{player.name:<5} {player.position:>4} {player.money:>5} {moves}")
 
     def reset_deck(self):
         """ 重置牌桌 """
@@ -227,9 +293,11 @@ class Dealer:
                                 Street.RIVER: ['??']}
         self.pot_manager.reset_pot()
         self.wait_players = []
-        for player in self.player_list:
+        self.set_positions()
+        for player in self.player_queue:
             player.reset_action()
             player.reset_current_bet()
+            player.reset_position()
 
         gc.collect()
 
