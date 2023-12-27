@@ -4,9 +4,11 @@
 from collections import defaultdict
 import gc
 from copy import deepcopy
+from turtle import position
 from typing import Optional
 
-from src.components import Street, Action, Move, Hand
+from src.components import Street, Action, Move, Hand, Position
+from src.components.position import Position
 
 
 class Player:
@@ -25,10 +27,10 @@ class Player:
         return self._name
     
     def __repr__(self):
-        return f"{self._name}\t({self._money}, {self._action})"
+        return f"{self._name}\t({self._position}, {self._money}, {self._action})"
 
     def bet(self,
-            street: str,
+            street: Street,
             amount: Optional[int],
             current_bet: int,
             min_raise: int) -> Move:
@@ -129,6 +131,9 @@ class Player:
         self._current_bet = 0
         gc.collect()
 
+    def set_position(self, pos: Position):
+        self._position = pos
+
     def add_chips(self, chips):
         self._money += chips
 
@@ -147,6 +152,9 @@ class Player:
 
     def reset_action(self):
         self._action = None
+    
+    def reset_position(self):
+        self._position = None
 
     @property
     def name(self):
@@ -175,6 +183,10 @@ class Player:
     @property
     def money(self):
         return self._money
+    
+    @property
+    def position(self):
+        return self._position
 
     
 if __name__ == '__main__':
