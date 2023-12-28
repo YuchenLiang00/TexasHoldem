@@ -1,8 +1,7 @@
 """ 定义玩家的信息和行为 """
-
-
-from collections import defaultdict
 import gc
+from flask_login import UserMixin
+from collections import defaultdict
 from copy import deepcopy
 from turtle import position
 from typing import Optional
@@ -11,7 +10,7 @@ from src.components import Street, Action, Move, Hand, Position
 from src.components.position import Position
 
 
-class Player:
+class Player(UserMixin):
     """ 玩家 """
     INIT_MONEY = 1_000
 
@@ -28,7 +27,11 @@ class Player:
     
     def __repr__(self):
         return f"{self._name}\t({self._position}, {self._money}, {self._action})"
-
+    
+    def get_id(self):
+        """ 实现 Flask-Login 所需的方法 """
+        return self._name
+    
     def bet(self,
             street: Street,
             amount: Optional[int],

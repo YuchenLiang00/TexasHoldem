@@ -1,7 +1,8 @@
 from __future__ import annotations
 from src import Dealer
 from src import Player
-
+from app import app, open_browser
+import threading
 
 def main():
     """ 接近完整流程 """
@@ -27,4 +28,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    threading.Thread(target=open_browser).start()
+    app.run(debug=True)
