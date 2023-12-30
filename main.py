@@ -6,10 +6,16 @@ from src import Player
 def main():
     """ 接近完整流程 """
     # 初始化
-    alice = Player('Alice',10)
-    bob = Player('Bob')
-    cindy = Player('Cindy')
-    dealer = Dealer([alice, bob, cindy])
+    players = []
+    while True:
+        name = input("Please enter your name(end with enter):")
+        if name:
+            players.append(Player(name))
+        else:
+            print("\033[H\033[J", end="")
+            print("Welcome to THU Casino, Texas Hold'em!")
+            break
+    dealer = Dealer(players)
     # 发牌1
     try:
         dealer.play()
