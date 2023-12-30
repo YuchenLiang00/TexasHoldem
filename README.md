@@ -1,6 +1,19 @@
 # Unlimited Texas Hold'em
-Final Project of Programming Design  
+Final Project of the course of Programming and Applications  
 
+## 使用步骤
+根据依赖文件创建新环境 
+```zsh
+conda env create -f environment.yaml
+```
+切换环境
+```zsh
+source activate holdem
+```
+运行主函数
+```zsh
+python main.py
+```
 
 ## 遇到的问题
 1. 玩家下注行为的细分
