@@ -136,10 +136,12 @@ class Player:
     def add_chips(self, chips):
         self._money += chips
 
-    def show_hand(self):
+    def show_hand(self, winner: bool = False):
         """ 展示手牌 """
-        print(f"{self._name:<10}"," ".join(map(str, self._hand)), end="\t") # type: ignore
+        crown = "♕" if winner else " "
 
+        print(f"{self._name:<9}", crown, " ".join(map(str, self._hand)), end="\t")  # type: ignore
+        
     def show_move(self,) -> list[str]:
         """ 展示行动 """
         move_list: list[str] = [str(l[-1]) if l else " " * 15

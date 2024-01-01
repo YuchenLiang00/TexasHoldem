@@ -7,10 +7,13 @@ def main():
     """ 接近完整流程 """
     # 初始化
     players = []
-    while True:
+    for _ in range(9):
         name = input("Please enter your name(end with enter):")
         if name:
             players.append(Player(name))
+        elif len(players) < 2:
+            print('\nNo enough players!\n')
+            return 
         else:
             print("\033[H\033[J", end="")
             print("Welcome to THU Casino, Texas Hold'em!")
