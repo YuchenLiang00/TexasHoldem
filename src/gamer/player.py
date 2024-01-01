@@ -4,7 +4,6 @@
 from collections import defaultdict
 import gc
 from copy import deepcopy
-from turtle import position
 from typing import Optional
 
 from src.components import Street, Action, Move, Hand, Position
